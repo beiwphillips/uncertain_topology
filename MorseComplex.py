@@ -1,5 +1,5 @@
 import numpy as np
-from UnionFind import *
+from UnionFind import UnionFind
 
 """
 Coordinates system:
