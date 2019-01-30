@@ -1,8 +1,8 @@
 % Generate synthetic data
 
-function [X, Y, gt] = generateSynthetic()
+function [X, Y, gt] = generateSynthetic(foo)
 
-rng('default')
+%rng('default')
 
 %% Function 1
 % x = -4 : 0.1: 4;
@@ -19,29 +19,45 @@ rng('default')
 % 
 % f = f*10;
 
-%% Function 2
-[X, Y] = meshgrid(0:0.025:1,0:0.025:1);
+if (strcmp(foo, '4peaks'))
+  %% Function 2
+  [X, Y] = meshgrid(0:0.025:1,0:0.025:1);
 
-f =   0.5 * exp(-(X - 0.25).^2./0.3^2)...
-    + 0.5 * exp(-(Y - 0.25).^2./0.3^2)...
-    + 0.5 * exp(-(X - 0.75).^2./0.1^2)...
-    + 0.5 * exp(-(Y - 0.75).^2./0.1^2);
+   f =  0.5 * exp(-(X - 0.25).^2./0.3^2)...
+      + 0.5 * exp(-(Y - 0.25).^2./0.3^2)...
+      + 0.5 * exp(-(X - 0.75).^2./0.1^2)...
+      + 0.5 * exp(-(Y - 0.75).^2./0.1^2);
 
-f = f*100;
+   f = f*100;
 
-gt = f;
+  % Function 3
+  % [X, Y] = meshgrid(0:0.2:1,0:0.2:1);
+  % 
+  % f =   0.5 * exp(-(X - 0.25).^2./0.3^2)...
+  %     + 0.5 * exp(-(Y - 0.25).^2./0.3^2)...
+  %     + 0.5 * exp(-(X - 0.75).^2./0.1^2)...
+  %     + 0.5 * exp(-(Y - 0.75).^2./0.1^2);
+  % 
+  % f = f*100;
 
-% Function 3
-% [X, Y] = meshgrid(0:0.2:1,0:0.2:1);
-% 
-% f =   0.5 * exp(-(X - 0.25).^2./0.3^2)...
-%     + 0.5 * exp(-(Y - 0.25).^2./0.3^2)...
-%     + 0.5 * exp(-(X - 0.75).^2./0.1^2)...
-%     + 0.5 * exp(-(Y - 0.75).^2./0.1^2);
-% 
-% f = f*100;
+  gt = f;
+   
+elseif(strcmp(foo,"ackley"))
+  %% 2D Ackley Function
+  [X, Y] = meshgrid(-1:0.05:1,-1:0.05:1);
+  %[X, Y] = meshgrid(-3:0.15:3,-3:0.15:3);
 
-gt = f;
+  f = -20 * exp(-0.2*sqrt(0.5*(X.^2 + Y.^2))) - exp(0.5*(cos(2*pi*X) + cos(2*pi*Y))) + 20 + exp(1);
+
+  gt = -f;
+elseif(strcmp(foo,"salomon"))
+  %% 2D Salomon Function
+  [X, Y] = meshgrid(-1:0.05:1,-1:0.05:1);
+  points = [X(:), Y(:)];
+  Z = salomon(points);
+  f = reshape(Z, size(X));
+  gt = f;
+end
 
 % Add noise to create ensemble data
 

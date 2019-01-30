@@ -1,6 +1,12 @@
-[X, Y, gt] = generateSynthetic();
+foo = "ackley";
+noiseLevel = 0.8;
 
-noisyEnsemble = getEnsemble(gt, 'uniform', 50);
+[X, Y, gt] = generateSynthetic(foo);
+
+noisyEnsemble = getEnsemble(gt, 'uniform', 50, noiseLevel);
+
+save(strcat("../data/", foo, "_groundtruth.mat"), "gt", '-V7')
+save(strcat("../data/", foo, "_", num2str(noiseLevel) , "_uncertain.mat"), "noisyEnsemble", '-V7')
 
 %subLevelSetUncertainTopology(gt,noisyEnsemble);
 %[rightP, upP, leftP, downP] = probabilisticMarchingGradient(X, Y, gt, noisyEnsemble);
