@@ -113,3 +113,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+apikey
+*.png
+*.pdf
+# These are data files that should only be explicitly updated (use -f)
+*.grb2
+*.mat
+*.vtu
+*.npy
