@@ -121,10 +121,11 @@ def show_persistence_charts(ensemble, my_dir, screen=False):
     ax = plt.gca()
     ax.set_ylim(0, 25)
     # plt.axhline(2, 0.10, 0.20, linestyle='dashed', color='#000000')
+    plt.savefig("{}/composite_persistence_charts.png".format(my_dir), bbox_inches='tight')
     if screen:
         plt.show()
-    plt.savefig("{}/composite_persistence_charts.png".format(my_dir), bbox_inches='tight')
     plt.close()
+    return all_ps, all_counts
 
 def show_survival_count(ensemble, my_dir, screen=False):
     all_counts = np.zeros(ensemble[:,:,0].shape)
@@ -163,7 +164,8 @@ def show_weighted_survival_count(ensemble, my_dir, screen=False):
     print("Contour visualized for weighted survival count: {}".format(k))
     plt.contour(all_weighted_counts, levels=[k], colors='#FFFF00')
     plt.savefig("{}/weighted_survival_count.png".format(my_dir), bbox_inches='tight')
-    plt.show()
+    if screen:
+        plt.show()
     plt.close()
     return all_weighted_counts
 
@@ -267,9 +269,9 @@ def show_blended_overlay(ensemble, assignments, my_dir, screen=False):
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(40, 0)
+    plt.savefig("{}/uncertain_assignment_blended_overlay.png".format(my_dir), bbox_inches='tight')
     if screen:
         plt.show()
-    plt.savefig("{}/uncertain_assignment_blended_overlay.png".format(my_dir), bbox_inches='tight')
     plt.close()
 
 def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=False):
@@ -311,9 +313,11 @@ def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=Fa
             plt.contourf(colored_images[i][:,:, 3], levels=[0.99999, 1], colors=my_color, alpha=0.5)
         plt.contour(colored_images[i][:,:, 3], levels=[0.0, 0.5, 1], colors=my_color, linewidths=[1, 0.5, 1.0], linestyles=['solid','dashed','solid'])
     plt.gca().set_ylim(40, 0)
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
+    plt.savefig("{}/uncertain_assignment_contour_overlay.png".format(my_dir), bbox_inches='tight')
     if screen:
         plt.show()
-    plt.savefig("{}/uncertain_assignment_contour_overlay.png".format(my_dir), bbox_inches='tight')
     plt.close()
 
 def show_combined_overlay(ensemble, assignments, my_dir, contours=False, screen=False):
@@ -360,5 +364,27 @@ def show_combined_overlay(ensemble, assignments, my_dir, contours=False, screen=
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.savefig("{}/uncertain_region_assignments.png".format(my_dir), bbox_inches='tight')
+    if screen:
+        plt.show()
     plt.close()
+
+
+def show_persistence_histogram(all_ps, all_counts):
+    unique_persistences = np.array(sorted(set([ p for ps in all_ps for p in ps])))
+    unique_counts = np.zeros(shape=(len(unique_persistences), len(all_ps)))
+    for row, p in enumerate(unique_persistences):
+        print(row, p)
+        for col in range(len(all_ps)):
+            index = 0
+            while index < len(all_ps)-1 and all_ps[col][index] < p:
+                index += 1
+            unique_counts[row, col] = all_counts[col][index]
+    print(unique_persistences)
+    print(unique_counts)
+    # for p, mu, sigma in zip(unique_persistences,np.mean(unique_counts, axis=1), np.std(unique_counts, axis=1) ):
+    #     print(p,mu,sigma)
+    plt.figure()
+    ax = sns.boxplot(data=unique_counts.T)
+    plt.show()
+
 

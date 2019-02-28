@@ -23,7 +23,7 @@ def ackley(x):
     y = term1 + term2 + a + np.exp(1)
     return -y
 
-def gaussian_2d(x, mu=0.75, sigma=0.125):
+def gaussian_2d(x, mu=0.75, sigma=0.25):
     return np.exp(-sum((x-mu)**2/(2*sigma**2)))
 
 def add_nonuniform_noise(field, noise_level):
@@ -31,7 +31,7 @@ def add_nonuniform_noise(field, noise_level):
     amplitude = np.ones(field.shape)
     for row in range(amplitude.shape[0]):
         y = row / amplitude.shape[0]
-        for j in range(amplitude):
+        for col in range(amplitude.shape[1]):
             x = col / amplitude.shape[1]
             amplitude[row, col] = gaussian_2d(np.array([x, y]))
     return field + amplitude*epsilon
