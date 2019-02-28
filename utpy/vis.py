@@ -1,5 +1,5 @@
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 
 from matplotlib import colors, cm
 import matplotlib.pyplot as plt
@@ -369,22 +369,27 @@ def show_combined_overlay(ensemble, assignments, my_dir, contours=False, screen=
     plt.close()
 
 
-def show_persistence_histogram(all_ps, all_counts):
+def autotune(all_ps, all_counts):
     unique_persistences = np.array(sorted(set([ p for ps in all_ps for p in ps])))
     unique_counts = np.zeros(shape=(len(unique_persistences), len(all_ps)))
     for row, p in enumerate(unique_persistences):
-        print(row, p)
         for col in range(len(all_ps)):
             index = 0
-            while index < len(all_ps)-1 and all_ps[col][index] < p:
+            while index < len(all_ps[col])-1 and all_ps[col][index] < p:
                 index += 1
             unique_counts[row, col] = all_counts[col][index]
-    print(unique_persistences)
-    print(unique_counts)
-    # for p, mu, sigma in zip(unique_persistences,np.mean(unique_counts, axis=1), np.std(unique_counts, axis=1) ):
-    #     print(p,mu,sigma)
-    plt.figure()
-    ax = sns.boxplot(data=unique_counts.T)
-    plt.show()
 
+    first_saved = None
+    for p, c in zip(unique_persistences, unique_counts ):
+        mu = np.mean(c)
+        sigma = np.std(c)
+        counts = np.bincount(np.array(c, dtype=int))
+        max_count = np.argmax(counts)
+        if first_saved is None and counts[max_count] >= 0.9*len(all_ps):
+            first_saved = (p, max_count)
+    # plt.figure()
+    # ax = sns.boxplot(data=unique_counts.T)
+    # plt.show()
+
+    return first_saved
 

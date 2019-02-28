@@ -1,7 +1,5 @@
 from functools import partial
 
-import matplotlib
-matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,34 +31,33 @@ def analyze_synthetic(foo="ackley", noise_level=0.3, matlab=False):
     # plot_realization(ground_truth)
     # plt.savefig("{}/gt.png".format(my_dir), bbox_inches='tight')
     # plt.close()
-    # for i in range(uncertain_realizations.shape[2]):
-    #     plot_realization(uncertain_realizations[:,:,i])
-    #     plt.savefig("{}/realization_{}.png".format(my_dir, i), bbox_inches='tight')
-    #     plt.close()
-    # mean_realization = np.mean(ensemble, axis=2)
-    # plot_realization(mean_realization)
-    # plt.savefig("{}/realization_mean.png".format(my_dir), bbox_inches='tight')
-    # plt.close()
+    for i in range(uncertain_realizations.shape[2]):
+        plot_realization(uncertain_realizations[:,:,i])
+        plt.savefig("{}/realization_{}.png".format(my_dir, i), bbox_inches='tight')
+        plt.close()
+    mean_realization = np.mean(ensemble, axis=2)
+    plot_realization(mean_realization)
+    plt.savefig("{}/realization_mean.png".format(my_dir), bbox_inches='tight')
+    plt.close()
 
     all_ps, all_counts = show_persistence_charts(ensemble, my_dir)
-    show_persistence_histogram(all_ps, all_counts)
-    # survival_count = show_survival_count(ensemble, my_dir)
-    # weighted_survival_count = show_weighted_survival_count(ensemble, my_dir)
-    # show_variance(survival_count, my_dir, True)
-    # show_variance(weighted_survival_count, my_dir)
+    persistence, n_clusters = autotune(all_ps, all_counts)
+    print(persistence, n_clusters)
+    survival_count = show_survival_count(ensemble, my_dir)
+    weighted_survival_count = show_weighted_survival_count(ensemble, my_dir)
+    show_variance(survival_count, my_dir, True)
+    show_variance(weighted_survival_count, my_dir)
 
-    # TODO: use some metrics off of the images above to set n_clusters and
-    # persistence
-    # if assignments is None:
-    #     maxima_map = create_assignment_map(ensemble, n_clusters=9, persistence=0.44)
-    #     assignments = partial(assign_labels, maxima_map=maxima_map, persistence=0.44)
+    if assignments is None:
+        maxima_map = create_assignment_map(ensemble, n_clusters=n_clusters, persistence=persistence)
+        assignments = partial(assign_labels, maxima_map=maxima_map, persistence=persistence)
 
-    # show_probabilities_colormap(ensemble, assignments, my_dir)
-    # show_blended_overlay(ensemble, assignments, my_dir)
-    # show_contour_overlay(ensemble, assignments, my_dir, True)
-    # show_contour_overlay(ensemble, assignments, my_dir, False, True)
-    # show_combined_overlay(ensemble, assignments, my_dir, False, True)
-    # show_combined_overlay(ensemble, assignments, my_dir, True)
+    show_probabilities_colormap(ensemble, assignments, my_dir)
+    show_blended_overlay(ensemble, assignments, my_dir)
+    show_contour_overlay(ensemble, assignments, my_dir, True)
+    show_contour_overlay(ensemble, assignments, my_dir, False, True)
+    show_combined_overlay(ensemble, assignments, my_dir, False, True)
+    show_combined_overlay(ensemble, assignments, my_dir, True)
 
 # analyze_synthetic()
 analyze_synthetic(ackley, 0.55)
