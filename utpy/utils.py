@@ -1,3 +1,4 @@
+from glob import glob
 import scipy.io
 import sklearn.cluster
 from sklearn.preprocessing import MinMaxScaler
@@ -6,16 +7,28 @@ import numpy as np
 import nglpy
 import topopy
 
+from utpy.test_functions import *
 
 def load_data(foo="ackley", noise_level=0.3):
     assignment_map = {"4peaks": assignments_4peaks, "ackley": assignments_ackley, "salomon": assignments_salomon}
     base_name = "data/" + foo
 
-    ground_truth = scipy.io.loadmat(base_name + "_groundtruth.mat")['gt']
-    uncertain_realizations = scipy.io.loadmat("{}_{}_uncertain.mat".format(base_name, str(noise_level)))['noisyEnsemble']
+    ground_truth = scipy.io.loadmat(base_name + "/groundtruth.mat")['gt']
+    uncertain_realizations = scipy.io.loadmat("{}/{}_uncertain.mat".format(base_name, str(noise_level)))['noisyEnsemble']
 
     assignments = assignment_map[foo]
     return ground_truth, uncertain_realizations, assignments
+
+def load_ensemble(name="matVelocity"):
+    base_name = "data/" + name
+    files = glob("{}/*.mat".format(base_name))
+
+    uncertain_realizations = []
+    for filename in files:
+        token = filename.rsplit("/", 1)[1].split(".")[0]
+        uncertain_realizations.append(scipy.io.loadmat(filename)[token].T)
+
+    return uncertain_realizations.T
 
 def massage_data(grid):
     X = []
@@ -200,7 +213,7 @@ def assignments_salomon(grid):
 
     return field.reshape(grid.shape), correct_p
 
-def create_assignment_map(ensemble, n_clusters=5):
+def create_assignment_map(ensemble, n_clusters, persistence):
     max_points = list()
     max_member = list()
 
@@ -213,7 +226,7 @@ def create_assignment_map(ensemble, n_clusters=5):
         X, Y = massage_data(ensemble[:, :, i])
         tmc.build(X, Y)
 
-        for key in tmc.get_partitions(20).keys():
+        for key in tmc.get_partitions(persistence).keys():
             max_points.append((int(X[key, 0]), int(X[key, 1])))
             max_member.append(i)
 
@@ -232,7 +245,7 @@ def create_assignment_map(ensemble, n_clusters=5):
 
     return maxima_map
 
-def assign_labels(grid, maxima_map, correct_p):
+def assign_labels(grid, maxima_map, persistence):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
@@ -242,11 +255,27 @@ def assign_labels(grid, maxima_map, correct_p):
                               normalization='feature')
     tmc.build(X, Y)
 
-    partitions = tmc.get_partitions(correct_p)
+    partitions = tmc.get_partitions(persistence)
 
     field = np.zeros(Y.shape, dtype=int)
     for k, v in partitions.items():
         field[v] = maxima_map[(int(X[k, 0]), int(X[k, 1]))]
 
 
-    return field.reshape(grid.shape), correct_p
+    return field.reshape(grid.shape), persistence
+
+def generate_ensemble(foo, noise_level, count=50, uniform=False):
+    xi = np.arange(-1, 1, 0.05)
+    xv, yv = np.meshgrid(xi, xi)
+    X = np.vstack((xv.flatten(), yv.flatten())).T
+    Z = foo(X)
+    zv = Z.reshape(xv.shape)
+    ground_truth = zv
+    uncertain_realizations = np.zeros(shape=ground_truth.shape+(count,))
+    np.random.seed(0)
+    for i in range(count):
+        if uniform:
+            uncertain_realizations[:,:, i] = add_uniform_noise(ground_truth, noise_level)
+        else:
+            uncertain_realizations[:,:, i] = add_nonuniform_noise(ground_truth, noise_level)
+    return ground_truth, uncertain_realizations
