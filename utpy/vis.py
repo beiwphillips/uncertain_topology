@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 from matplotlib import colors, cm
 import matplotlib.pyplot as plt
 from skimage import filters, morphology
@@ -5,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
 from itertools import cycle
 
-import nglpy
+import nglpy_cuda as ngl
 import topopy
 
 from utpy.utils import *
@@ -34,7 +37,7 @@ def plot_realization(grid):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
-    graph = nglpy.Graph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+    graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
     tmc = topopy.MorseComplex(graph=graph,
                               gradient='steepest',
                               normalization='feature')
@@ -92,7 +95,7 @@ def show_persistence_charts(ensemble, my_dir, screen=False):
     all_ps = []
     all_counts = []
     for i in range(ensemble.shape[2]):
-        graph = nglpy.Graph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+        graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
         tmc = topopy.MorseComplex(graph=graph,
                                 gradient='steepest',
                                 normalization='feature')

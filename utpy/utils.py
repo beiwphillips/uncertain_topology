@@ -3,7 +3,7 @@ import sklearn.cluster
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
-import nglpy
+import nglpy_cuda as ngl
 import topopy
 
 
@@ -64,7 +64,7 @@ def count_persistence(grid):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
-    graph = nglpy.Graph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+    graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
     tmc = topopy.MorseComplex(graph=graph,
                               gradient='steepest',
                               normalization='feature')
@@ -95,7 +95,7 @@ def assignments_4peaks(grid):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
-    graph = nglpy.Graph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+    graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
     tmc = topopy.MorseComplex(graph=graph,
                               gradient='steepest',
                               normalization='feature')
@@ -126,7 +126,7 @@ def assignments_ackley(grid):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
-    graph = nglpy.Graph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+    graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
     tmc = topopy.MorseComplex(graph=graph,
                               gradient='steepest',
                               normalization='feature')
@@ -169,7 +169,7 @@ def assignments_salomon(grid):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
-    graph = nglpy.Graph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+    graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
     tmc = topopy.MorseComplex(graph=graph,
                               gradient='steepest',
                               normalization='feature')
@@ -205,7 +205,7 @@ def create_assignment_map(ensemble, n_clusters=5):
     max_member = list()
 
     for i in range(ensemble.shape[2]):
-        graph = nglpy.Graph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+        graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
         tmc = topopy.MorseComplex(graph=graph,
                                 gradient='steepest',
                                 normalization='feature')
@@ -236,7 +236,7 @@ def assign_labels(grid, maxima_map):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
-    graph = nglpy.Graph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+    graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
     tmc = topopy.MorseComplex(graph=graph,
                               gradient='steepest',
                               normalization='feature')
