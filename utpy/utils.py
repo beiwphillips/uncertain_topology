@@ -232,7 +232,7 @@ def create_assignment_map(ensemble, n_clusters=5):
 
     return maxima_map
 
-def assign_labels(grid, maxima_map):
+def assign_labels(grid, maxima_map, correct_p):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
@@ -242,8 +242,7 @@ def assign_labels(grid, maxima_map):
                               normalization='feature')
     tmc.build(X, Y)
 
-    correct_p = 20
-    partitions = tmc.get_partitions(p)
+    partitions = tmc.get_partitions(correct_p)
 
     field = np.zeros(Y.shape, dtype=int)
     for k, v in partitions.items():

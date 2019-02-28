@@ -310,6 +310,8 @@ def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=Fa
     plt.gca().set_ylim(40, 0)
     if screen:
         plt.show()
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
     plt.savefig("{}/uncertain_assignment_contour_overlay.png".format(my_dir), bbox_inches='tight')
     plt.close()
 
