@@ -78,7 +78,7 @@ def plot_realization(grid):
     bounds.append(bounds[-1]+1)
     plt.figure()
 
-    color_mesh = np.zeros((w, h))
+    color_mesh = np.zeros((h, w))
     for key, indices in partitions.items():
         for idx in indices:
             color_mesh[idx // w, idx % w] = keyMap[key]
