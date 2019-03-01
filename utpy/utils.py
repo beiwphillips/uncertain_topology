@@ -26,9 +26,13 @@ def load_ensemble(name="matVelocity"):
     uncertain_realizations = []
     for filename in files:
         token = filename.rsplit("/", 1)[1].split(".")[0]
-        uncertain_realizations.append(scipy.io.loadmat(filename)[token].T)
-
-    return uncertain_realizations.T
+        # Temperature data is a bit special in that it has multiple
+        # entries, let's just take the first for now.
+        if name == "matTemperature":
+            uncertain_realizations.append(scipy.io.loadmat(filename)[token][:,:,0].T)
+        else:
+            uncertain_realizations.append(scipy.io.loadmat(filename)[token].T)
+    return np.array(uncertain_realizations).T
 
 def massage_data(grid):
     X = []
