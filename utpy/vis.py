@@ -13,9 +13,13 @@ import topopy
 
 from utpy.utils import *
 
-color_list = [[141,211,199], [255,255,179], [190,186,218],
-            [251,128,114], [128,177,211], [253,180,98],
-            [179,222,105], [252,205,229], [217,217,217]]
+color_list = [[228, 26, 28], [55, 126, 184], [77, 175, 74],
+              [152, 78, 163], [255, 127, 0], [255, 255, 51],
+              [166, 86, 40], [247, 129, 191], [153, 153, 153]]
+
+# color_list = [[141, 211, 199], [255, 255, 179], [190, 186, 218],
+#               [251, 128, 114], [128, 177, 211], [253, 180, 98],
+#               [179, 222, 105], [252, 205, 229], [217, 217, 217]]
 # color_list = [[105,239,123], [149,56,144], [192,222,164],
 #                 [14,80,62], [153,222,249], [24,81,155],
 #                 [218,185,255], [66,30,200], [183,211,33]]
@@ -26,28 +30,91 @@ color_list = [[141,211,199], [255,255,179], [190,186,218],
 ccycle = cycle(color_list)
 
 
+def alpha_blend(src, dest):
+    out_image = np.zeros(dest.shape)
+    out_image[:, :, 3] = src[:, :, 3] + dest[:, :, 3]*(1 - src[:, :, 3])
+    out_image[:, :, :-1] = src[:, :, :-1]*src[:, :3] + \
+        dest[:, :, :-1]*dest[:, :, 3]*(1 - src[:, :, 3])
+    out_image[:, :, :-1] /= out_image[:, :, 3]
+
+
+def overlay_alpha_image_lazy(background_rgb, overlay_rgba, alpha):
+    # cf https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending
+    # If the destination background is opaque, then
+    #   out_rgb = overlay_rgb * overlay_alpha + background_rgb * (1 - overlay_alpha)
+    overlay_alpha = overlay_rgba[:, :, 3].astype(np.float) / 255. * alpha
+    overlay_alpha_3 = np.dstack((overlay_alpha, overlay_alpha, overlay_alpha))
+    overlay_rgb = overlay_rgba[:, :, : 3].astype(np.float)
+    background_rgb_f = background_rgb.astype(np.float)
+    out_rgb = overlay_rgb * overlay_alpha_3 + \
+        background_rgb_f * (1. - overlay_alpha_3)
+    out_rgb = out_rgb.astype(np.uint8)
+    return out_rgb
+
+
+def overlay_alpha_image_precise(background_rgb, overlay_rgba, alpha, gamma_factor=2.2):
+    """
+    cf minute physics brilliant clip "Computer color is broken" : https://www.youtube.com/watch?v=LKnqECcg6Gw
+    the RGB values are gamma-corrected by the sensor (in order to keep accuracy for lower luminancy),
+    we need to undo this before averaging.
+    """
+    overlay_alpha = overlay_rgba[:, :, 3].astype(np.float) / 255. * alpha
+    overlay_alpha_3 = np.dstack((overlay_alpha, overlay_alpha, overlay_alpha))
+
+    overlay_rgb_squared = np.float_power(
+        overlay_rgba[:, :, : 3].astype(np.float), gamma_factor)
+    background_rgb_squared = np.float_power(
+        background_rgb.astype(np.float), gamma_factor)
+    out_rgb_squared = overlay_rgb_squared * overlay_alpha_3 + \
+        background_rgb_squared * (1. - overlay_alpha_3)
+    out_rgb = np.float_power(out_rgb_squared, 1. / gamma_factor)
+    out_rgb = out_rgb.astype(np.uint8)
+    return out_rgb
+
+
 def show_image(image):
     plt.figure()
-    img = plt.imshow(image, cmap=plt.cm.Greys, norm=colors.LogNorm(vmin=image.min(), vmax=image.max()),)
+    img = plt.imshow(image, cmap=plt.cm.Greys, norm=colors.LogNorm(
+        vmin=image.min(), vmax=image.max()),)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
-    plt.colorbar(img)
+    plt.colorbar(img, orientation="horizontal")
 
-def plot_realization(grid):
+
+def show_colormapped_image(image, my_dir, screen=False, filename="height.png"):
+    plt.figure()
+    img = plt.imshow(image, cmap="cividis", vmin=image.min(), vmax=image.max())
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
+    plt.colorbar(img, orientation="horizontal")
+    plt.gca().set_ylim(0, image.shape[0])
+    plt.savefig("{}/{}".format(my_dir, filename), bbox_inches='tight')
+    if screen:
+        plt.show()
+    plt.close()
+
+
+def show_msc(grid, my_dir, persistence=None, n_clusters=None, screen=False, filename="msc.png"):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
-    graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+    graph = ngl.EmptyRegionGraph(**graph_params)
     tmc = topopy.MorseComplex(graph=graph,
                               gradient='steepest',
-                              normalization='feature')
+                              normalization=None)
     tmc.build(X, Y)
 
-    partitions = tmc.get_partitions(0.1)
+    if persistence is None:
+        for p in tmc.persistences:
+            if len(tmc.get_partitions(p).keys()) <= n_clusters:
+                persistence = p
+                break
+
+    partitions = tmc.get_partitions(persistence)
     keys = partitions.keys()
 
     keyMap = {}
-    for i,k in enumerate(keys):
+    for i, k in enumerate(keys):
         keyMap[k] = i
 
     colorList = [
@@ -70,7 +137,7 @@ def plot_realization(grid):
 
     uniqueCount = len(keys)
     usedColors = []
-    for i,c in zip(range(uniqueCount), ccycle):
+    for i, c in zip(range(uniqueCount), ccycle):
         usedColors.append(c)
     cmap = colors.ListedColormap(usedColors)
     bounds = np.array([keyMap[k] for k in keys]) - 0.5
@@ -83,22 +150,82 @@ def plot_realization(grid):
         for idx in indices:
             color_mesh[idx // w, idx % w] = keyMap[key]
 
-    img = plt.imshow(color_mesh, cmap=cmap, interpolation="nearest", origin="lower")
+    img = plt.imshow(color_mesh, cmap=cmap,
+                     interpolation="nearest", origin="lower")
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
-    plt.colorbar(img, cmap=cmap, ticks=[range(uniqueCount)], boundaries=bounds)
+    plt.colorbar(img, cmap=cmap, ticks=[range(uniqueCount)], boundaries=bounds, orientation="horizontal")
     plt.contour(grid, cmap=cm.Greys)
+    plt.savefig("{}/{}".format(my_dir, filename), bbox_inches='tight')
+    if screen:
+        plt.show()
+    plt.close()
 
-def show_persistence_charts(ensemble, my_dir, screen=False):
+
+def show_msc_boundaries(grid, persistence=None, n_clusters=None, color="#000000"):
+    X, Y = utpy.utils.massage_data(grid)
+    h, w = grid.shape
+
+    graph = ngl.EmptyRegionGraph(**graph_params)
+    tmc = topopy.MorseComplex(graph=graph,
+                              gradient='steepest',
+                              normalization=None)
+    tmc.build(X, Y)
+
+    if persistence is None:
+        for p in tmc.persistences:
+            if len(tmc.get_partitions(p).keys()) <= n_clusters:
+                persistence = p
+                break
+
+    partitions = tmc.get_partitions(persistence)
+    keys = partitions.keys()
+
+    keyMap = {}
+    levels = []
+    for i, k in enumerate(keys):
+        keyMap[k] = i
+        levels.append(i+0.5)
+
+    color_mesh = np.zeros((h, w))
+    for key, indices in partitions.items():
+        for idx in indices:
+            color_mesh[idx // w, idx % w] = keyMap[key]
+
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
+    for i in keyMap.values():
+        plt.contour(color_mesh == i, colors=color, levels=levels, linewidths=1)
+    plt.gca().set_aspect("equal")
+
+
+def show_method_comparison(ground_truth, ensemble, n_clusters, assignments):
+    plt.figure()
+    mean_realization = np.mean(ensemble, axis=2)
+    # median_realization = np.median(ensemble, axis=2)
+    show_combined_overlay(ensemble, assignments, 0.2, False)
+    show_msc_boundaries(ground_truth, n_clusters=n_clusters, color="#4daf4a")
+    show_msc_boundaries(
+        mean_realization, n_clusters=n_clusters, color="#e41a1c")
+    plt.plot([-1, -0.5], [0, 1], color="#4daf4a",
+             linewidth=1, label="ground truth")
+    plt.plot([-1, -0.5], [0, 1], color="#e41a1c", linewidth=1, label="mean")
+    plt.gca().set_xlim(0, 39)
+    plt.gca().set_ylim(0, 39)
+    _ = plt.legend(bbox_to_anchor=(0, 1.02, 1, 0.2),
+                   loc="lower left", mode="expand", borderaxespad=0, ncol=3)
+
+
+def show_persistence_charts(ensemble, my_dir, screen=False, filename="composite_persistence_charts.png"):
     plt.figure()
 
     all_ps = []
     all_counts = []
     for i in range(ensemble.shape[2]):
-        graph = ngl.EmptyRegionGraph(index=None, max_neighbors=10, relaxed=False, beta=1, p=2.)
+        graph = ngl.EmptyRegionGraph(**graph_params)
         tmc = topopy.MorseComplex(graph=graph,
-                                gradient='steepest',
-                                normalization='feature')
+                                  gradient='steepest',
+                                  normalization=None)
 
         X, Y = massage_data(ensemble[:, :, i])
         tmc.build(X, Y)
@@ -119,93 +246,205 @@ def show_persistence_charts(ensemble, my_dir, screen=False):
         plt.plot(ps, counts, alpha=0.2, c='#1f78b4')
 
     ax = plt.gca()
-    ax.set_ylim(0, 25)
+    # ax.set_ylim(0, 25)
     # plt.axhline(2, 0.10, 0.20, linestyle='dashed', color='#000000')
-    plt.savefig("{}/composite_persistence_charts.png".format(my_dir), bbox_inches='tight')
+    plt.savefig("{}/{}".format(my_dir, filename), bbox_inches='tight')
     if screen:
         plt.show()
     plt.close()
     return all_ps, all_counts
 
-def show_survival_count(ensemble, my_dir, screen=False):
-    all_counts = np.zeros(ensemble[:,:,0].shape)
-    all_weighted_counts = np.zeros(ensemble[:,:,0].shape)
+
+def show_persistence_chart(realization, my_dir, screen=False, filename="persistence_chart.png"):
+    plt.figure()
+
+    graph = ngl.EmptyRegionGraph(**graph_params)
+    tmc = topopy.MorseComplex(graph=graph,
+                              gradient='steepest',
+                              normalization=None)
+
+    X, Y = massage_data(realization)
+    tmc.build(X, Y)
+    ps = [0]
+
+    count = len(np.unique(list(tmc.get_partitions(0).keys())))
+    counts = [count]
+    eps = 1e-6
+    for i, p in enumerate(tmc.persistences):
+        ps.append(p)
+        counts.append(count)
+        count = len(np.unique(list(tmc.get_partitions(p+eps).keys())))
+        ps.append(p)
+        counts.append(count)
+
+    plt.plot(ps, counts, c='#1f78b4')
+
+    ax = plt.gca()
+    plt.savefig("{}/{}".format(my_dir, filename), bbox_inches='tight')
+    if screen:
+        plt.show()
+    plt.close()
+    return ps, counts
+
+
+def show_survival_count(ensemble, my_dir, screen=False, filename="survival_count.png"):
+    all_counts = np.zeros(ensemble[:, :, 0].shape)
     for i in range(ensemble.shape[2]):
-    # for i in range(1):
-        counts, weighted_counts = count_persistence(ensemble[:,:,i])
+        # for i in range(1):
+        counts, _, _, _ = count_persistence(ensemble[:, :, i])
         all_counts += counts
-        all_weighted_counts += weighted_counts
 
     plt.figure()
-    img = plt.imshow(all_counts, cmap=cm.Greys)
-    plt.colorbar(img)
+
+    img = plt.imshow(all_counts / np.max(all_counts), cmap=cm.Greys)
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
+    plt.gca().set_ylim(0, counts.shape[0])
+    plt.colorbar(img, orientation="horizontal")
     k = (np.max(all_counts) + np.min(all_counts)) / 2.
-    print("Contour visualized for survival count: {}".format(k))
-    plt.contour(all_counts, levels=[k], colors='#FFFF00')
-    plt.savefig("{}/survival_count.png".format(my_dir), bbox_inches='tight')
+    # print("Contour visualized for survival count: {}".format(k))
+    # plt.contour(all_counts, levels=[k], colors='#FFFF00')
+    plt.savefig("{}/{}".format(my_dir, filename), bbox_inches='tight')
     if screen:
         plt.show()
     plt.close()
     return all_counts
 
-def show_weighted_survival_count(ensemble, my_dir, screen=False):
-    all_counts = np.zeros(ensemble[:,:,0].shape)
-    all_weighted_counts = np.zeros(ensemble[:,:,0].shape)
+
+def show_weighted_survival_count(ensemble, my_dir, screen=False, filename="weighted_survival_count.png"):
+    all_weighted_counts = np.zeros(ensemble[:, :, 0].shape)
     for i in range(ensemble.shape[2]):
-    # for i in range(1):
-        counts, weighted_counts = count_persistence(ensemble[:,:,i])
-        all_counts += counts
+        # for i in range(1):
+        _, weighted_counts, _, _ = count_persistence(ensemble[:, :, i])
         all_weighted_counts += weighted_counts
 
     plt.figure()
-    img2 = plt.imshow(all_weighted_counts, cmap=cm.Greys)
-    plt.colorbar(img2)
-    k = (np.max(all_weighted_counts) + np.min(all_weighted_counts)) / 2.
-    print("Contour visualized for weighted survival count: {}".format(k))
-    plt.contour(all_weighted_counts, levels=[k], colors='#FFFF00')
-    plt.savefig("{}/weighted_survival_count.png".format(my_dir), bbox_inches='tight')
+    img = plt.imshow(all_weighted_counts /
+                     np.max(all_weighted_counts), cmap=cm.Greys)
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
+    plt.gca().set_ylim(0, all_weighted_counts.shape[0])
+    plt.colorbar(img, orientation="horizontal")
+    plt.savefig("{}/{}".format(my_dir, filename),
+                bbox_inches='tight')
     if screen:
         plt.show()
     plt.close()
     return all_weighted_counts
 
-def show_variance(counts, my_dir, screen=False):
+
+def show_weighted_instability_count(ensemble, my_dir, screen=False, filename="weighted_instability_count.png"):
+    all_weighted_counts = np.zeros(ensemble[:, :, 0].shape)
+    for i in range(ensemble.shape[2]):
+        # for i in range(1):
+        _, _, weighted_counts, _ = count_persistence(ensemble[:, :, i])
+        all_weighted_counts += weighted_counts
+
+    plt.figure()
+    img = plt.imshow(all_weighted_counts /
+                     np.max(all_weighted_counts), cmap=cm.Greys)
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
+    plt.gca().set_ylim(0, all_weighted_counts.shape[0])
+    plt.colorbar(img, orientation="horizontal")
+    plt.savefig("{}/{}".format(my_dir, filename),
+                bbox_inches='tight')
+    if screen:
+        plt.show()
+    plt.close()
+    return all_weighted_counts
+
+
+def show_weighted_consumption_count(ensemble, my_dir, screen=False, filename="weighted_consumption_count.png"):
+    all_weighted_counts = np.zeros(ensemble[:, :, 0].shape)
+    for i in range(ensemble.shape[2]):
+        # for i in range(1):
+        _, _, _, weighted_counts = count_persistence(ensemble[:, :, i])
+        all_weighted_counts += weighted_counts
+
+    plt.figure()
+    img = plt.imshow(all_weighted_counts /
+                     np.max(all_weighted_counts), cmap=cm.Greys)
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
+    plt.gca().set_ylim(0, all_weighted_counts.shape[0])
+    plt.colorbar(img, orientation="horizontal")
+    plt.savefig("{}/{}".format(my_dir, filename),
+                bbox_inches='tight')
+    if screen:
+        plt.show()
+    plt.close()
+    return all_weighted_counts
+
+
+def show_median_counts(ensemble, my_dir, screen=False, filename="_median.png"):
+    survival_counts = np.zeros(ensemble.shape)
+    weighted_survival_counts = np.zeros(ensemble.shape)
+    weighted_instability_counts = np.zeros(ensemble.shape)
+    weighted_consumption_counts = np.zeros(ensemble.shape)
+    for i in range(ensemble.shape[2]):
+        survival_counts[:, :, i], weighted_survival_counts[:, :, i], weighted_instability_counts[:,
+                                                                                                 :, i], weighted_consumption_counts[:, :, i] = count_persistence(ensemble[:, :, i])
+
+    for name, counts in zip(["survival_count", "weighted_survival_count", "weighted_instability_count", "weighted_consumption_count"], [survival_counts, weighted_survival_counts, weighted_instability_counts, weighted_consumption_counts]):
+        plt.figure()
+        img = plt.imshow(np.median(counts, axis=2) /
+                         np.max(counts), cmap=cm.Greys)
+        plt.gca().get_xaxis().set_visible(False)
+        plt.gca().get_yaxis().set_visible(False)
+        plt.gca().set_ylim(0, counts.shape[0])
+        plt.colorbar(img, orientation="horizontal")
+        plt.savefig("{}/{}".format(my_dir, name+filename),
+                    bbox_inches='tight')
+        if screen:
+            plt.show()
+        plt.close()
+
+
+def show_variance(counts, my_dir, screen=False, filename="weighted_surival_count_variance.png"):
     mean_images = []
     max_radius = 5
 
     image = (counts - np.min(counts)) / (np.max(counts) - np.min(counts))
-    eps=1e-16
+    eps = 1e-16
     for i in range(1, max_radius):
         mean_images.append(filters.rank.mean(image, selem=morphology.disk(i)))
         if screen:
             show_image(mean_images[-1]+eps)
             plt.gca().set_title("Mean r={}".format(i))
+            plt.gca().get_xaxis().set_visible(False)
+            plt.gca().get_yaxis().set_visible(False)
+            plt.gca().set_ylim(0, counts.shape[0])
             plt.show()
             plt.close()
 
     image = 255*image
     variance_images = []
-    eps=1e-16
+    eps = 1e-16
     for i, mean_image in enumerate(mean_images):
-        variance_images.append(np.power(image-mean_image,2)+eps)
+        variance_images.append(np.power(image-mean_image, 2)+eps)
         show_image(variance_images[-1])
         plt.gca().set_title("Variance r={}".format(i))
+        plt.gca().get_xaxis().set_visible(False)
+        plt.gca().get_yaxis().set_visible(False)
+        plt.gca().set_ylim(0, counts.shape[0])
         if screen:
             plt.show()
-        plt.savefig("{}/weighted_surival_count_variance_{}.png".format(my_dir, i), bbox_inches='tight')
+        plt.savefig(
+            "{}/{}_{}".format(my_dir, i, filename), bbox_inches='tight')
         plt.close()
 
-def show_probabilities_colormap(ensemble, assignments, my_dir, screen=False):
+
+def show_probabilities_colormap(ensemble, assignments, my_dir, screen=False, filename="partition_probabilities.png"):
     ps = []
     fields = []
     for i in range(ensemble.shape[2]):
-        field, p = assignments(ensemble[:,:,i])
+        field, p = assignments(ensemble[:, :, i])
         ps.append(p)
         fields.append(field)
 
     ps = np.array(ps)
     fields = np.array(fields)
-    print(np.min(ps), np.max(ps), np.mean(ps), np.std(ps))
 
     num_partitions = len(np.unique(fields[0]))
     shape = (num_partitions,) + fields[0].shape
@@ -215,27 +454,31 @@ def show_probabilities_colormap(ensemble, assignments, my_dir, screen=False):
     dim2 = int(np.floor(num_partitions/dim1+0.5))
     fig, axes = plt.subplots(dim1, dim2, tight_layout=True)
 
+    print(len(axes), num_partitions)
     axes = axes.flatten()
 
     for i in range(num_partitions):
         test_image = (fields == i)
         label_images[i] = np.sum(test_image, axis=0)
         img = axes[i].imshow(label_images[i])
+        axes[i].set_ylim(0, ensemble.shape[0])
         axes[i].get_xaxis().set_visible(False)
         axes[i].get_yaxis().set_visible(False)
     for i in range(num_partitions, dim1*dim2):
         axes[i].set_visible(False)
 
-    plt.savefig("{}/partition_probabilities.png".format(my_dir), bbox_inches='tight')
+    plt.savefig("{}/{}".format(my_dir, filename),
+                bbox_inches='tight')
     if screen:
         plt.show()
     plt.close()
 
-def show_blended_overlay(ensemble, assignments, my_dir, screen=False):
+
+def show_blended_overlay(ensemble, assignments, my_dir, gamma=2.2, screen=False, filename="uncertain_assignment_blended_overlay.png"):
     ps = []
     fields = []
     for i in range(ensemble.shape[2]):
-        field, p = assignments(ensemble[:,:,i])
+        field, p = assignments(ensemble[:, :, i])
         ps.append(p)
         fields.append(field)
 
@@ -253,32 +496,36 @@ def show_blended_overlay(ensemble, assignments, my_dir, screen=False):
     colored_images = []
     for i, c in zip(range(num_partitions), ccycle):
         colored_image = np.zeros(label_images[0].shape + (4,))
-        colored_image[:,:,0] = c[0]/255.
-        colored_image[:,:,1] = c[1]/255.
-        colored_image[:,:,2] = c[2]/255.
+        colored_image[:, :, 0] = c[0]/255.
+        colored_image[:, :, 1] = c[1]/255.
+        colored_image[:, :, 2] = c[2]/255.
         colored_images.append(colored_image)
 
     for i, label_image in enumerate(label_images):
-        colored_images[i][:,:, 3] = label_image / 50.
+        colored_images[i][:, :, 3] = label_image / 50.
 
     plt.figure()
-    composite_image = 255*np.ones(colored_images[0].shape)[:,:,:-1]
+    composite_image = 255*np.ones(colored_images[0].shape)[:, :, :-1]
     for colored_image in colored_images:
-        composite_image = overlay_alpha_image_precise(composite_image, 255*colored_image, 1.)
+        composite_image = overlay_alpha_image_precise(
+            composite_image, 255*colored_image, 1., gamma)
     plt.imshow(composite_image)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
-    plt.gca().set_ylim(40, 0)
-    plt.savefig("{}/uncertain_assignment_blended_overlay.png".format(my_dir), bbox_inches='tight')
+    # plt.gca().set_ylim(ensemble.shape[0], 0)
+    plt.gca().set_ylim(0, ensemble.shape[0])
+    plt.savefig(
+        "{}/{}".format(my_dir, filename), bbox_inches='tight')
     if screen:
         plt.show()
     plt.close()
 
-def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=False):
+
+def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=False, filename="uncertain_assignment_contour_overlay.png"):
     ps = []
     fields = []
     for i in range(ensemble.shape[2]):
-        field, p = assignments(ensemble[:,:,i])
+        field, p = assignments(ensemble[:, :, i])
         ps.append(p)
         fields.append(field)
 
@@ -296,35 +543,44 @@ def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=Fa
     colored_images = []
     for i, c in zip(range(num_partitions), ccycle):
         colored_image = np.zeros(label_images[0].shape + (4,))
-        colored_image[:,:,0] = c[0]/255.
-        colored_image[:,:,1] = c[1]/255.
-        colored_image[:,:,2] = c[2]/255.
+        colored_image[:, :, 0] = c[0]/255.
+        colored_image[:, :, 1] = c[1]/255.
+        colored_image[:, :, 2] = c[2]/255.
         colored_images.append(colored_image)
 
     for i, label_image in enumerate(label_images):
-        colored_images[i][:,:, 3] = label_image / 50.
+        colored_images[i][:, :, 3] = label_image / 50.
 
     plt.figure()
     for i, color in zip(range(num_partitions), ccycle):
-        my_color = "#{}{}{}".format(*[hex(c).split('x')[-1] for c in color])
+        my_color = "#{:>02}{:>02}{:>02}".format(
+            *[hex(c).split('x')[-1] for c in color])
         if colored:
-            plt.contourf(colored_images[i][:,:, 3], levels=[1e-6, 1], colors=my_color, alpha=0.5)
+            plt.contourf(colored_images[i][:, :, 3], levels=[
+                         1e-6, 1], colors=my_color, alpha=0.5)
         else:
-            plt.contourf(colored_images[i][:,:, 3], levels=[0.99999, 1], colors=my_color, alpha=0.5)
-        plt.contour(colored_images[i][:,:, 3], levels=[0.0, 0.5, 1], colors=my_color, linewidths=[1, 0.5, 1.0], linestyles=['solid','dashed','solid'])
-    plt.gca().set_ylim(40, 0)
+            plt.contourf(colored_images[i][:, :, 3], levels=[
+                         0.99999, 1], colors=my_color, alpha=0.5)
+        plt.contour(colored_images[i][:, :, 3], levels=[0.0, 0.5, 1], colors=my_color, linewidths=[
+                    1, 0.5, 1.0], linestyles=['solid', 'dashed', 'solid'])
+    plt.gca().set_xlim(0, ensemble.shape[1])
+    # plt.gca().set_ylim(ensemble.shape[0], 0)
+    plt.gca().set_ylim(0, ensemble.shape[0])
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
-    plt.savefig("{}/uncertain_assignment_contour_overlay.png".format(my_dir), bbox_inches='tight')
+    plt.gca().set_aspect('equal')
+    plt.savefig(
+        "{}/{}".format(my_dir, filename), bbox_inches='tight')
     if screen:
         plt.show()
     plt.close()
 
-def show_combined_overlay(ensemble, assignments, my_dir, contours=False, screen=False):
+
+def show_certain_regions(ensemble, assignments, my_dir, contours=False, screen=False, filename="certain_assignment.png"):
     ps = []
     fields = []
     for i in range(ensemble.shape[2]):
-        field, p = assignments(ensemble[:,:,i])
+        field, p = assignments(ensemble[:, :, i])
         ps.append(p)
         fields.append(field)
 
@@ -342,54 +598,89 @@ def show_combined_overlay(ensemble, assignments, my_dir, contours=False, screen=
     colored_images = []
     for i, c in zip(range(num_partitions), ccycle):
         colored_image = np.zeros(label_images[0].shape + (4,))
-        colored_image[:,:,0] = c[0]/255.
-        colored_image[:,:,1] = c[1]/255.
-        colored_image[:,:,2] = c[2]/255.
+        colored_image[:, :, 0] = c[0]/255.
+        colored_image[:, :, 1] = c[1]/255.
+        colored_image[:, :, 2] = c[2]/255.
         colored_images.append(colored_image)
 
     for i, label_image in enumerate(label_images):
-        colored_images[i][:,:, 3] = label_image / 50.
+        colored_images[i][:, :, 3] = label_image / 50.
 
     plt.figure()
-    composite_image = 255*np.ones(colored_images[0].shape)[:,:,:-1]
-    for colored_image in colored_images:
-        composite_image = overlay_alpha_image_precise(composite_image, 255*colored_image, 1.)
     for i, color in zip(range(num_partitions), ccycle):
-        my_color = "#{}{}{}".format(*[hex(c).split('x')[-1] for c in color])
-        plt.contourf(colored_images[i][:,:, 3], levels=[0.99999, 1], colors="#FFFFFF", alpha=1)
+        my_color = "#{:>02}{:>02}{:>02}".format(
+            *[hex(c).split('x')[-1] for c in color])
+        plt.contourf(colored_images[i][:, :, 3], levels=[
+                     0.99999, 1], colors=my_color, alpha=0.5)
         if contours:
-            plt.contour(colored_images[i][:,:, 3], levels=[0.5, 1], colors=my_color, linewidths=[0.5, 1.0], linestyles=['dashed','solid'])
-
-    plt.imshow(composite_image)
+            plt.contour(colored_images[i][:, :, 3], levels=[0.0, 0.5, 1], colors=my_color, linewidths=[
+                        1, 0.5, 1.0], linestyles=['solid', 'dashed', 'solid'])
+        # else:
+        #     plt.contour(colored_images[i][:, :, 3], levels=[0.0, 1], colors=my_color, linewidths=[
+        #                 1, 1.0], linestyles=['solid', 'dashed', 'solid'])
+    plt.gca().set_xlim(0, ensemble.shape[1])
+    # plt.gca().set_ylim(ensemble.shape[0], 0)
+    plt.gca().set_ylim(0, ensemble.shape[0])
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
-    plt.savefig("{}/uncertain_region_assignments.png".format(my_dir), bbox_inches='tight')
+    plt.gca().set_aspect('equal')
+    plt.savefig(
+        "{}/{}".format(my_dir, filename), bbox_inches='tight')
     if screen:
         plt.show()
     plt.close()
 
 
-def autotune(all_ps, all_counts):
-    unique_persistences = np.array(sorted(set([ p for ps in all_ps for p in ps])))
-    unique_counts = np.zeros(shape=(len(unique_persistences), len(all_ps)))
-    for row, p in enumerate(unique_persistences):
-        for col in range(len(all_ps)):
-            index = 0
-            while index < len(all_ps[col])-1 and all_ps[col][index] < p:
-                index += 1
-            unique_counts[row, col] = all_counts[col][index]
+def show_combined_overlay(ensemble, assignments, my_dir, gamma=2.2, contours=False, screen=False, filename="uncertain_region_assignments.png"):
+    ps = []
+    fields = []
+    for i in range(ensemble.shape[2]):
+        field, p = assignments(ensemble[:, :, i])
+        ps.append(p)
+        fields.append(field)
 
-    first_saved = None
-    for p, c in zip(unique_persistences, unique_counts ):
-        mu = np.mean(c)
-        sigma = np.std(c)
-        counts = np.bincount(np.array(c, dtype=int))
-        max_count = np.argmax(counts)
-        if first_saved is None and counts[max_count] >= 0.9*len(all_ps):
-            first_saved = (p, max_count)
-    # plt.figure()
-    # ax = sns.boxplot(data=unique_counts.T)
-    # plt.show()
+    ps = np.array(ps)
+    fields = np.array(fields)
 
-    return first_saved
+    num_partitions = len(np.unique(fields[0]))
+    shape = (num_partitions,) + fields[0].shape
+    label_images = np.zeros(shape)
 
+    for i in range(num_partitions):
+        test_image = (fields == i)
+        label_images[i] = np.sum(test_image, axis=0)
+
+    colored_images = []
+    for i, c in zip(range(num_partitions), ccycle):
+        colored_image = np.zeros(label_images[0].shape + (4,))
+        colored_image[:, :, 0] = c[0]/255.
+        colored_image[:, :, 1] = c[1]/255.
+        colored_image[:, :, 2] = c[2]/255.
+        colored_images.append(colored_image)
+
+    for i, label_image in enumerate(label_images):
+        colored_images[i][:, :, 3] = label_image / 50.
+
+    plt.figure()
+    composite_image = 255*np.ones(colored_images[0].shape)[:, :, :-1]
+    for colored_image in colored_images:
+        composite_image = overlay_alpha_image_precise(
+            composite_image, 255*colored_image, 1., gamma)
+    for i, color in zip(range(num_partitions), ccycle):
+        my_color = "#{:>02}{:>02}{:>02}".format(*[hex(c).split('x')[-1] for c in color])
+        plt.contourf(colored_images[i][:, :, 3], levels=[
+                     0.99999, 1], colors="#FFFFFF", alpha=1)
+        if contours:
+            plt.contour(colored_images[i][:, :, 3], levels=[
+                        0.5, 1], colors=my_color, linewidths=[0.5, 1.0], linestyles=['dashed', 'solid'])
+
+    plt.imshow(composite_image)
+    plt.gca().get_xaxis().set_visible(False)
+    plt.gca().get_yaxis().set_visible(False)
+    # plt.gca().set_ylim(ensemble.shape[0], 0)
+    plt.gca().set_ylim(0, ensemble.shape[0])
+    plt.savefig("{}/{}".format(my_dir, filename),
+                bbox_inches='tight')
+    if screen:
+        plt.show()
+    plt.close()
