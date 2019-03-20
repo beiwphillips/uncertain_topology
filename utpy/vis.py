@@ -477,7 +477,8 @@ def show_probabilities_colormap(ensemble, assignments, my_dir, screen=False, fil
 def show_blended_overlay(ensemble, assignments, my_dir, gamma=2.2, screen=False, filename="uncertain_assignment_blended_overlay.png"):
     ps = []
     fields = []
-    for i in range(ensemble.shape[2]):
+    count = ensemble.shape[2]
+    for i in range(count):
         field, p = assignments(ensemble[:, :, i])
         ps.append(p)
         fields.append(field)
@@ -502,7 +503,7 @@ def show_blended_overlay(ensemble, assignments, my_dir, gamma=2.2, screen=False,
         colored_images.append(colored_image)
 
     for i, label_image in enumerate(label_images):
-        colored_images[i][:, :, 3] = label_image / 50.
+        colored_images[i][:, :, 3] = label_image / count
 
     plt.figure()
     composite_image = 255*np.ones(colored_images[0].shape)[:, :, :-1]
@@ -524,7 +525,8 @@ def show_blended_overlay(ensemble, assignments, my_dir, gamma=2.2, screen=False,
 def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=False, filename="uncertain_assignment_contour_overlay.png"):
     ps = []
     fields = []
-    for i in range(ensemble.shape[2]):
+    count = ensemble.shape[2]
+    for i in range(count):
         field, p = assignments(ensemble[:, :, i])
         ps.append(p)
         fields.append(field)
@@ -549,7 +551,7 @@ def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=Fa
         colored_images.append(colored_image)
 
     for i, label_image in enumerate(label_images):
-        colored_images[i][:, :, 3] = label_image / 50.
+        colored_images[i][:, :, 3] = label_image / count
 
     plt.figure()
     for i, color in zip(range(num_partitions), ccycle):
@@ -579,7 +581,8 @@ def show_contour_overlay(ensemble, assignments, my_dir, colored=False, screen=Fa
 def show_certain_regions(ensemble, assignments, my_dir, contours=False, screen=False, filename="certain_assignment.png"):
     ps = []
     fields = []
-    for i in range(ensemble.shape[2]):
+    count = ensemble.shape[2]
+    for i in range(count):
         field, p = assignments(ensemble[:, :, i])
         ps.append(p)
         fields.append(field)
@@ -604,7 +607,7 @@ def show_certain_regions(ensemble, assignments, my_dir, contours=False, screen=F
         colored_images.append(colored_image)
 
     for i, label_image in enumerate(label_images):
-        colored_images[i][:, :, 3] = label_image / 50.
+        colored_images[i][:, :, 3] = label_image / count
 
     plt.figure()
     for i, color in zip(range(num_partitions), ccycle):
@@ -634,7 +637,8 @@ def show_certain_regions(ensemble, assignments, my_dir, contours=False, screen=F
 def show_combined_overlay(ensemble, assignments, my_dir, gamma=2.2, contours=False, screen=False, filename="uncertain_region_assignments.png"):
     ps = []
     fields = []
-    for i in range(ensemble.shape[2]):
+    count = ensemble.shape[2]
+    for i in range(count):
         field, p = assignments(ensemble[:, :, i])
         ps.append(p)
         fields.append(field)
@@ -659,7 +663,7 @@ def show_combined_overlay(ensemble, assignments, my_dir, gamma=2.2, contours=Fal
         colored_images.append(colored_image)
 
     for i, label_image in enumerate(label_images):
-        colored_images[i][:, :, 3] = label_image / 50.
+        colored_images[i][:, :, 3] = label_image / count
 
     plt.figure()
     composite_image = 255*np.ones(colored_images[0].shape)[:, :, :-1]
