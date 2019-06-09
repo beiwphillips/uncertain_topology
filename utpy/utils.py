@@ -155,7 +155,7 @@ def create_assignment_map(ensemble, n_clusters=None, persistence=None):
                         max_member.append(i)
                     break
     if n_clusters is None and persistence is not None:
-        n_clustes = int(np.average(max_counts))
+        n_clusters = int(np.average(max_counts))
 
     maxima = np.array(max_points)
     maxima = MinMaxScaler().fit_transform(maxima)
@@ -293,6 +293,5 @@ def autotune_from_persistence(all_ps, all_counts):
 
 def autotune_from_survival_count(counts):
     # Perform image-based intensity segmentation here
-    print(counts)
     clustering = sklearn.cluster.DBSCAN(eps=0.3, min_samples=3).fit(counts)
     return
