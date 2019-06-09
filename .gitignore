@@ -122,3 +122,5 @@ apikey
 *.mat
 *.vtu
 *.npy
+
+.vscode/*.json
