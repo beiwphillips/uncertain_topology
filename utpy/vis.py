@@ -26,7 +26,7 @@ color_list = [[228, 26, 28], [55, 126, 184], [77, 175, 74],
 # color_list = [[251,180,174],[179,205,227],[204,235,197],
 #               [222,203,228],[254,217,166],[255,255,204],
 #               [229,216,189],[253,218,236],[242,242,242]]
-
+color_list = np.array(np.array(plt.cm.tab20.colors)*255, dtype=int)
 ccycle = cycle(color_list)
 
 
@@ -74,7 +74,7 @@ def overlay_alpha_image_precise(background_rgb, overlay_rgba, alpha, gamma_facto
 
 def show_image(image):
     plt.figure()
-    img = plt.imshow(image, cmap=plt.cm.Greys, norm=colors.LogNorm(
+    img = plt.imshow(image, cmap=plt.cm.viridis, norm=colors.LogNorm(
         vmin=image.min(), vmax=image.max()),)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
@@ -155,7 +155,7 @@ def show_msc(grid, my_dir, persistence=None, n_clusters=None, screen=False, file
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.colorbar(img, cmap=cmap, ticks=[range(uniqueCount)], boundaries=bounds, orientation="horizontal")
-    plt.contour(grid, cmap=cm.Greys)
+    # plt.contour(grid, cmap=cm.Greys, levels=[-400, -100, -50])
     plt.savefig("{}/{}".format(my_dir, filename), bbox_inches='tight')
     if screen:
         plt.show()
@@ -296,11 +296,14 @@ def show_survival_count(ensemble, my_dir, screen=False, filename="survival_count
 
     plt.figure()
 
-    img = plt.imshow(all_counts / np.max(all_counts), cmap=cm.Greys)
+    img = plt.imshow((all_counts - np.min(all_counts)) / (np.max(all_counts)- np.min(all_counts)), cmap=cm.viridis)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(0, counts.shape[0])
-    plt.colorbar(img, orientation="horizontal")
+    if ensemble.shape[0] > 2*ensemble.shape[1]:
+        plt.colorbar(img, orientation="horizontal")
+    else:
+        plt.colorbar(img, orientation="vertical")
     k = (np.max(all_counts) + np.min(all_counts)) / 2.
     # print("Contour visualized for survival count: {}".format(k))
     # plt.contour(all_counts, levels=[k], colors='#FFFF00')
@@ -319,12 +322,15 @@ def show_weighted_survival_count(ensemble, my_dir, screen=False, filename="weigh
         all_weighted_counts += weighted_counts
 
     plt.figure()
-    img = plt.imshow(all_weighted_counts /
-                     np.max(all_weighted_counts), cmap=cm.Greys)
+    img = plt.imshow((all_weighted_counts - np.min(all_weighted_counts))/
+                     (np.max(all_weighted_counts) - np.min(all_weighted_counts)), cmap=cm.viridis)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(0, all_weighted_counts.shape[0])
-    plt.colorbar(img, orientation="horizontal")
+    if ensemble.shape[0] > 2*ensemble.shape[1]:
+        plt.colorbar(img, orientation="horizontal")
+    else:
+        plt.colorbar(img, orientation="vertical")
     plt.savefig("{}/{}".format(my_dir, filename),
                 bbox_inches='tight')
     if screen:
@@ -341,12 +347,15 @@ def show_weighted_instability_count(ensemble, my_dir, screen=False, filename="we
         all_weighted_counts += weighted_counts
 
     plt.figure()
-    img = plt.imshow(all_weighted_counts /
-                     np.max(all_weighted_counts), cmap=cm.Greys)
+    img = plt.imshow((all_weighted_counts - np.min(all_weighted_counts))/
+                     (np.max(all_weighted_counts) - np.min(all_weighted_counts)), cmap=cm.viridis)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(0, all_weighted_counts.shape[0])
-    plt.colorbar(img, orientation="horizontal")
+    if ensemble.shape[0] > 2*ensemble.shape[1]:
+        plt.colorbar(img, orientation="horizontal")
+    else:
+        plt.colorbar(img, orientation="vertical")
     plt.savefig("{}/{}".format(my_dir, filename),
                 bbox_inches='tight')
     if screen:
@@ -363,12 +372,15 @@ def show_weighted_consumption_count(ensemble, my_dir, screen=False, filename="we
         all_weighted_counts += weighted_counts
 
     plt.figure()
-    img = plt.imshow(all_weighted_counts /
-                     np.max(all_weighted_counts), cmap=cm.Greys)
+    img = plt.imshow((all_weighted_counts - np.min(all_weighted_counts))/
+                     (np.max(all_weighted_counts) - np.min(all_weighted_counts)), cmap=cm.viridis)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(0, all_weighted_counts.shape[0])
-    plt.colorbar(img, orientation="horizontal")
+    if ensemble.shape[0] > 2*ensemble.shape[1]:
+        plt.colorbar(img, orientation="horizontal")
+    else:
+        plt.colorbar(img, orientation="vertical")
     plt.savefig("{}/{}".format(my_dir, filename),
                 bbox_inches='tight')
     if screen:
@@ -388,12 +400,15 @@ def show_median_counts(ensemble, my_dir, screen=False, filename="_median.png"):
 
     for name, counts in zip(["survival_count", "weighted_survival_count", "weighted_instability_count", "weighted_consumption_count"], [survival_counts, weighted_survival_counts, weighted_instability_counts, weighted_consumption_counts]):
         plt.figure()
-        img = plt.imshow(np.median(counts, axis=2) /
-                         np.max(counts), cmap=cm.Greys)
+        img = plt.imshow((np.median(counts, axis=2) - np.max(counts)) /
+                         (np.max(counts) - np.max(counts)), cmap=cm.viridis)
         plt.gca().get_xaxis().set_visible(False)
         plt.gca().get_yaxis().set_visible(False)
         plt.gca().set_ylim(0, counts.shape[0])
-        plt.colorbar(img, orientation="horizontal")
+        if ensemble.shape[0] > 2*ensemble.shape[1]:
+            plt.colorbar(img, orientation="horizontal")
+        else:
+            plt.colorbar(img, orientation="vertical")
         plt.savefig("{}/{}".format(my_dir, name+filename),
                     bbox_inches='tight')
         if screen:
@@ -454,7 +469,6 @@ def show_probabilities_colormap(ensemble, assignments, my_dir, screen=False, fil
     dim2 = int(np.floor(num_partitions/dim1+0.5))
     fig, axes = plt.subplots(dim1, dim2, tight_layout=True)
 
-    print(len(axes), num_partitions)
     axes = axes.flatten()
 
     for i in range(num_partitions):
@@ -675,8 +689,7 @@ def show_combined_overlay(ensemble, assignments, my_dir, gamma=2.2, contours=Fal
         plt.contourf(colored_images[i][:, :, 3], levels=[
                      0.99999, 1], colors="#FFFFFF", alpha=1)
         if contours:
-            plt.contour(colored_images[i][:, :, 3], levels=[
-                        0.5, 1], colors=my_color, linewidths=[0.5, 1.0], linestyles=['dashed', 'solid'])
+            plt.contour(colored_images[i][:, :, 3], levels=[0.5], colors="#000000", linewidths=[1.0], linestyles=['solid'])
 
     plt.imshow(composite_image)
     plt.gca().get_xaxis().set_visible(False)
@@ -688,3 +701,25 @@ def show_combined_overlay(ensemble, assignments, my_dir, gamma=2.2, contours=Fal
     if screen:
         plt.show()
     plt.close()
+
+
+def show_label_boundaries(labels, ax, color="#000000"):
+    h, w = labels.shape
+
+    keyMap = {}
+    levels = []
+    for i, k in enumerate(np.unique(labels)):
+        keyMap[k] = i
+        levels.append(i+0.5)
+
+    color_mesh = np.zeros((h, w))
+    for i in range(labels.shape[0]):
+        for j in range(labels.shape[1]):
+            color_mesh[i, j] = keyMap[labels[i,j]]
+
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    for i in keyMap.values():
+        ax.contour(color_mesh == i, colors=color, levels=levels, linewidths=1)
+    ax.set_aspect("equal")
+    # draw(filename)
