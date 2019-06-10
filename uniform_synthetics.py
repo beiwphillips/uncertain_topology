@@ -26,7 +26,7 @@ else:
                       "goldstein_price", "rosenbrock", "salomon",
                       "schwefel", "shekel"]
 
-for noise_level in [1.0]:
+for noise_level in [0.6]:
     for name, foo in flatpy.twoD.available_functions.items():
         negate = name in ["ackley", "himmelblau"]
         if not len(args.functions) or name in args.functions:

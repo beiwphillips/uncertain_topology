@@ -19,6 +19,7 @@ from utpy.vis import (show_colormapped_image,
                       show_weighted_survival_count,
                       show_weighted_instability_count,
                       show_weighted_consumption_count,
+                      show_max_consumption,
                       show_median_counts,
                       show_variance,
                       show_probabilities_colormap,
@@ -53,11 +54,11 @@ def analyze(name, ensemble, ground_truth=None, negate=False, n_clusters=None, pe
     if ground_truth is not None:
         show_msc(ground_truth, my_dir, persistence=None, n_clusters=n_clusters, screen=False, filename="gt_msc.png")
         show_colormapped_image(ground_truth, my_dir, False, "gt_height.png")
-    # for i in range(ensemble.shape[2]):
-    #     show_msc(ensemble[:, :, i], my_dir, persistence=None, n_clusters=n_clusters, screen=False,
-    #              filename="realization_msc_{}.png".format(i))
-    #     show_colormapped_image(
-    #         ensemble[:, :, i], my_dir, False, "realization_height_{}.png".format(i))
+    for i in range(ensemble.shape[2]):
+        show_msc(ensemble[:, :, i], my_dir, persistence=None, n_clusters=n_clusters, screen=False,
+                 filename="realization_msc_{}.png".format(i))
+        show_colormapped_image(
+            ensemble[:, :, i], my_dir, False, "realization_height_{}.png".format(i))
 
     mean_realization = np.mean(ensemble, axis=2)
     show_msc(mean_realization, my_dir, persistence=None, n_clusters=n_clusters,
@@ -77,10 +78,11 @@ def analyze(name, ensemble, ground_truth=None, negate=False, n_clusters=None, pe
     weighted_survival_count = show_weighted_survival_count(ensemble, my_dir)
     weighted_instability_count = show_weighted_instability_count(ensemble, my_dir)
     weighted_consumption_count = show_weighted_consumption_count(ensemble, my_dir)
+    max_consumptions = show_max_consumption(ensemble, my_dir)
     show_median_counts(ensemble, my_dir)
     n_clusters_wsc = autotune_from_survival_count(weighted_survival_count)
     # show_variance(survival_count, my_dir, True)
-    show_variance(weighted_survival_count, my_dir)
+    show_variance(weighted_consumption_count, my_dir)
 
     maxima_map = create_assignment_map(
         ensemble, n_clusters=n_clusters, persistence=persistence)

@@ -1,5 +1,5 @@
-# import matplotlib
-# matplotlib.use("Agg")
+import matplotlib
+matplotlib.use("Agg")
 
 from utpy.pipeline import analyze_external
 import argparse

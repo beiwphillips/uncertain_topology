@@ -96,6 +96,35 @@ def count_persistence(grid):
 
     return counts.reshape(grid.shape), weighted_counts.reshape(grid.shape), unstable_counts.reshape(grid.shape), consumption_counts.reshape(grid.shape)
 
+def max_consumption(grid):
+    X, Y = massage_data(grid)
+    h, w = grid.shape
+
+    graph = ngl.EmptyRegionGraph(**graph_params)
+    tmc = topopy.MorseComplex(graph=graph,
+                              gradient='steepest',
+                              normalization=None)
+    tmc.build(X, Y)
+
+    partitions = tmc.get_partitions()
+    sorted_hierarchy = sorted([(p, k, x)
+                               for k, (p, x, s) in tmc.merge_sequence.items()])
+
+    field = np.zeros(Y.shape, dtype=int)
+    for k, v in partitions.items():
+        field[v] = k
+
+    consumption_maxs = np.zeros(Y.shape)
+    last_persistence = 0
+    for persistence, dying_index, surviving_index in sorted_hierarchy:
+        next_field = np.array(field)
+        next_field[np.where(next_field == dying_index)] = surviving_index
+        idxs = np.where(field == surviving_index)
+        consumption_maxs[idxs] = np.maximum(consumption_maxs[idxs], (persistence-last_persistence))
+        field = next_field
+        last_persistence = persistence
+
+    return consumption_maxs.reshape(grid.shape)
 
 def get_persistence_from_count(ensemble, n_clusters):
     persistences = []
