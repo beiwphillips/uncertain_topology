@@ -300,7 +300,7 @@ def show_survival_count(ensemble, my_dir, screen=False, filename="survival_count
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(0, counts.shape[0])
-    if ensemble.shape[0] > 2*ensemble.shape[1]:
+    if ensemble.shape[1] > 2*ensemble.shape[0]:
         plt.colorbar(img, orientation="horizontal")
     else:
         plt.colorbar(img, orientation="vertical")
@@ -313,7 +313,8 @@ def show_survival_count(ensemble, my_dir, screen=False, filename="survival_count
     plt.close()
     return all_counts
 
-my_cmap = cm.viridis # colors.ListedColormap(cm.tab10.colors[:9])
+my_cmap = cm.viridis
+# my_cmap = colors.ListedColormap(cm.tab20.colors[:16])
 
 def show_weighted_survival_count(ensemble, my_dir, screen=False, filename="weighted_survival_count.png"):
     all_weighted_counts = np.zeros(ensemble[:, :, 0].shape)
@@ -323,12 +324,14 @@ def show_weighted_survival_count(ensemble, my_dir, screen=False, filename="weigh
         all_weighted_counts += weighted_counts
 
     plt.figure()
+    # img = plt.imshow((all_weighted_counts - np.min(all_weighted_counts))/
+    #                  (np.max(all_weighted_counts) - np.min(all_weighted_counts)), cmap=my_cmap)
     img = plt.imshow((all_weighted_counts - np.min(all_weighted_counts))/
                      (np.max(all_weighted_counts) - np.min(all_weighted_counts)), cmap=my_cmap)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(0, all_weighted_counts.shape[0])
-    if ensemble.shape[0] > 2*ensemble.shape[1]:
+    if ensemble.shape[1] > 2*ensemble.shape[0]:
         plt.colorbar(img, orientation="horizontal")
     else:
         plt.colorbar(img, orientation="vertical")
@@ -353,7 +356,7 @@ def show_weighted_instability_count(ensemble, my_dir, screen=False, filename="we
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(0, all_weighted_counts.shape[0])
-    if ensemble.shape[0] > 2*ensemble.shape[1]:
+    if ensemble.shape[1] > 2*ensemble.shape[0]:
         plt.colorbar(img, orientation="horizontal")
     else:
         plt.colorbar(img, orientation="vertical")
@@ -373,12 +376,14 @@ def show_weighted_consumption_count(ensemble, my_dir, screen=False, filename="we
         all_weighted_counts += weighted_counts
 
     plt.figure()
-    img = plt.imshow((all_weighted_counts - np.min(all_weighted_counts))/
-                     (np.max(all_weighted_counts) - np.min(all_weighted_counts)), cmap=my_cmap)
+    # img = plt.imshow((all_weighted_counts - np.min(all_weighted_counts))/
+    #                  (np.max(all_weighted_counts) - np.min(all_weighted_counts)), cmap=my_cmap)
+    img = plt.imshow(all_weighted_counts/
+                     np.max(all_weighted_counts), cmap=my_cmap)
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.gca().set_ylim(0, all_weighted_counts.shape[0])
-    if ensemble.shape[0] > 2*ensemble.shape[1]:
+    if ensemble.shape[1] > 2*ensemble.shape[0]:
         plt.colorbar(img, orientation="horizontal")
     else:
         plt.colorbar(img, orientation="vertical")

@@ -81,7 +81,7 @@ def analyze(name, ensemble, ground_truth=None, negate=False, n_clusters=None, pe
     max_consumptions = show_max_consumption(ensemble, my_dir)
     show_median_counts(ensemble, my_dir)
     n_clusters_wsc = autotune_from_survival_count(weighted_survival_count)
-    # show_variance(survival_count, my_dir, True)
+    show_variance(survival_count, my_dir, True)
     show_variance(weighted_consumption_count, my_dir)
 
     maxima_map = create_assignment_map(
