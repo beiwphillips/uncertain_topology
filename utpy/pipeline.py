@@ -153,7 +153,9 @@ def analyze_external(filename, n_clusters=None, negate=False):
         filename (str): The name of the file where the data will be loaded from
             (dictates where the output folder name.
         negate (bool): Flag for specifying whether the input should be inverted.
-        n_clusters (int): The number of clusters/Morse cells you expect in your data.
+        n_clusters (int): The number of clusters/Morse cells you expect in your
+            data.
+        negate (bool): Flag for specifying whether the input should be inverted.
 
     Returns:
         None
@@ -166,6 +168,22 @@ def analyze_external(filename, n_clusters=None, negate=False):
 def analyze_synthetic(
     foo, name=None, noise_level=0.3, count=50, noise_model="uniform", negate=False
 ):
+    """ Performs a full suite of analyses on a dataset defined by a closed-form
+        function.
+
+    Args:
+        foo (function): A function that accepts a 2D numpy.ndarray and returns
+            a scalar value for every row of the array.
+        name (str): The name of the dataset (dictates where the output folder
+            name.
+        noise_level (float): A value specifying the maximum amount of noise to
+            add to the function in each realization.
+        count (int): The number of realizations to generate.
+        noise_model (str): One of {'variable', 'uniform', 'nonparametric'}
+
+    Returns:
+        None
+    """
     if name is None:
         name = foo.__name__
     if "ackley" in name:
