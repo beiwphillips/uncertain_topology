@@ -4,33 +4,35 @@ import os
 import numpy as np
 import scipy
 
-from utpy.utils import (autotune_from_survival_count,
-                        autotune_from_persistence,
-                        assign_labels,
-                        create_assignment_map,
-                        generate_ensemble,
-                        load_ensemble,
-                        get_count_from_persistence,
-                        get_persistence_from_count)
-from utpy.vis import (show_colormapped_image,
-                      show_persistence_charts,
-                      show_persistence_chart,
-                      show_survival_count,
-                      show_weighted_survival_count,
-                      show_weighted_instability_count,
-                      show_weighted_consumption_count,
-                      show_max_consumption,
-                      show_median_counts,
-                      show_variance,
-                      show_probabilities_colormap,
-                      show_blended_overlay,
-                      show_contour_overlay,
-                      show_certain_regions,
-                      show_combined_overlay,
-                      show_msc,)
+import utpy.utils as uu
+import utpy.vis as uv
 
 
-def analyze(name, ensemble, ground_truth=None, negate=False, n_clusters=None, persistence=None):
+def analyze(
+    name, ensemble, ground_truth=None, negate=False, n_clusters=None, persistence=None
+):
+    """ Catch-all function for performing a full suite of analyses on a dataset
+        and generating a directory full of images.
+
+    Args:
+        name (str): The name of the dataset (dictates where the output folder
+            name.
+        ensemble (numpy.ndarray): A 3D array where the first two dimensions are
+            the data dimensions and
+            the third is reserved for the individual realizations.
+        ground_truth (numpy.ndarray): A 2D array specifying the ground truth
+            function values of a grid of data. Note, passing None means the
+            ground truth is unavailable.
+        negate (bool): Flag for specifying whether the input should be inverted.
+        n_clusters (int): The number of clusters/Morse cells you expect in your
+            data.
+        persistence (float): The level of simplification. If known, you can set
+            this to slightly smaller than the smallest true feature of your
+            data.
+
+    Returns:
+        None
+    """
     if negate:
         ensemble = -ensemble
         if ground_truth is not None:
@@ -41,75 +43,129 @@ def analyze(name, ensemble, ground_truth=None, negate=False, n_clusters=None, pe
         os.makedirs(my_dir)
 
     if ground_truth is not None:
-        scipy.io.savemat(my_dir + "/ensemble.mat", {"ensemble": ensemble, "gt": ground_truth})
+        scipy.io.savemat(
+            my_dir + "/ensemble.mat", {"ensemble": ensemble, "gt": ground_truth}
+        )
 
-    all_ps, all_counts = show_persistence_charts(ensemble, my_dir)
+    all_ps, all_counts = uv.show_persistence_charts(ensemble, my_dir)
     if persistence is None and n_clusters is None:
-        persistence, n_clusters = autotune_from_persistence(all_ps, all_counts)
+        persistence, n_clusters = uu.autotune_from_persistence(all_ps, all_counts)
     elif n_clusters is not None:
-        persistence = get_persistence_from_count(ensemble, n_clusters)
+        persistence = uu.get_persistence_from_count(ensemble, n_clusters)
     else:
-        n_clusters = get_count_from_persistence(ensemble, persistence)
+        n_clusters = uu.get_count_from_persistence(ensemble, persistence)
 
     if ground_truth is not None:
-        show_msc(ground_truth, my_dir, persistence=None, n_clusters=n_clusters, screen=False, filename="gt_msc.png")
-        show_colormapped_image(ground_truth, my_dir, False, "gt_height.png")
+        uv.show_msc(
+            ground_truth,
+            my_dir,
+            persistence=None,
+            n_clusters=n_clusters,
+            screen=False,
+            filename="gt_msc.png",
+        )
+        uv.show_colormapped_image(ground_truth, my_dir, False, "gt_height.png")
     for i in range(ensemble.shape[2]):
-        show_msc(ensemble[:, :, i], my_dir, persistence=None, n_clusters=n_clusters, screen=False,
-                 filename="realization_msc_{}.png".format(i))
-        show_colormapped_image(
-            ensemble[:, :, i], my_dir, False, "realization_height_{}.png".format(i))
+        uv.show_msc(
+            ensemble[:, :, i],
+            my_dir,
+            persistence=None,
+            n_clusters=n_clusters,
+            screen=False,
+            filename="realization_msc_{}.png".format(i),
+        )
+        uv.show_colormapped_image(
+            ensemble[:, :, i], my_dir, False, "realization_height_{}.png".format(i)
+        )
 
     mean_realization = np.mean(ensemble, axis=2)
-    show_msc(mean_realization, my_dir, persistence=None, n_clusters=n_clusters,
-             screen=False, filename="realization_mean_msc.png")
-    show_colormapped_image(mean_realization, my_dir,
-                           False, "realization_mean_height.png")
-    show_persistence_chart(mean_realization, my_dir, False, "mean_persistence_chart.png")
+    uv.show_msc(
+        mean_realization,
+        my_dir,
+        persistence=None,
+        n_clusters=n_clusters,
+        screen=False,
+        filename="realization_mean_msc.png",
+    )
+    uv.show_colormapped_image(
+        mean_realization, my_dir, False, "realization_mean_height.png"
+    )
+    uv.show_persistence_chart(
+        mean_realization, my_dir, False, "mean_persistence_chart.png"
+    )
 
     median_realization = np.median(ensemble, axis=2)
-    show_msc(median_realization, my_dir, persistence=None, n_clusters=n_clusters,
-             screen=False, filename="realization_median_msc.png")
-    show_colormapped_image(median_realization, my_dir,
-                           False, "realization_median_height.png")
-    show_persistence_chart(median_realization, my_dir, False, "median_persistence_chart.png")
+    uv.show_msc(
+        median_realization,
+        my_dir,
+        persistence=None,
+        n_clusters=n_clusters,
+        screen=False,
+        filename="realization_median_msc.png",
+    )
+    uv.show_colormapped_image(
+        median_realization, my_dir, False, "realization_median_height.png"
+    )
+    uv.show_persistence_chart(
+        median_realization, my_dir, False, "median_persistence_chart.png"
+    )
 
-    survival_count = show_survival_count(ensemble, my_dir)
-    weighted_survival_count = show_weighted_survival_count(ensemble, my_dir)
-    weighted_instability_count = show_weighted_instability_count(ensemble, my_dir)
-    weighted_consumption_count = show_weighted_consumption_count(ensemble, my_dir)
-    max_consumptions = show_max_consumption(ensemble, my_dir)
-    show_median_counts(ensemble, my_dir)
-    n_clusters_wsc = autotune_from_survival_count(weighted_survival_count)
-    show_variance(survival_count, my_dir, True)
-    show_variance(weighted_consumption_count, my_dir)
+    survival_count = uv.show_survival_count(ensemble, my_dir)
+    weighted_survival_count = uv.show_weighted_survival_count(ensemble, my_dir)
+    weighted_instability_count = uv.show_weighted_instability_count(ensemble, my_dir)
+    weighted_consumption_count = uv.show_weighted_consumption_count(ensemble, my_dir)
+    max_consumptions = uv.show_max_consumption(ensemble, my_dir)
+    uv.show_median_counts(ensemble, my_dir)
+    n_clusters_wsc = uu.autotune_from_survival_count(weighted_survival_count)
+    uv.show_variance(survival_count, my_dir, True)
+    uv.show_variance(weighted_consumption_count, my_dir)
 
-    maxima_map = create_assignment_map(
-        ensemble, n_clusters=n_clusters, persistence=persistence)
+    maxima_map = uu.create_assignment_map(
+        ensemble, n_clusters=n_clusters, persistence=persistence
+    )
     assignments = partial(
-        assign_labels, maxima_map=maxima_map, n_clusters=n_clusters, persistence=persistence)
+        uu.assign_labels,
+        maxima_map=maxima_map,
+        n_clusters=n_clusters,
+        persistence=persistence,
+    )
 
-    show_probabilities_colormap(ensemble, assignments, my_dir)
-    show_blended_overlay(ensemble, assignments, my_dir, 0.2)
+    uv.show_probabilities_colormap(ensemble, assignments, my_dir)
+    uv.show_blended_overlay(ensemble, assignments, my_dir, 0.2)
 
-    show_certain_regions(ensemble, assignments, my_dir, False)
-    show_contour_overlay(ensemble, assignments, my_dir, False)
-    show_combined_overlay(ensemble, assignments, my_dir, 0.2, True)
-    show_combined_overlay(ensemble, assignments, my_dir, 0.2, False, filename="uncertain_region_assignments2.png")
+    uv.show_certain_regions(ensemble, assignments, my_dir, False)
+    uv.show_contour_overlay(ensemble, assignments, my_dir, False)
+    uv.show_combined_overlay(ensemble, assignments, my_dir, 0.2, True)
+    uv.show_combined_overlay(
+        ensemble,
+        assignments,
+        my_dir,
+        0.2,
+        False,
+        filename="uncertain_region_assignments2.png",
+    )
 
 
 def analyze_external(filename, n_clusters=None, negate=False):
+    """ Performs a full suite of analyses on a dataset loaded from a csv file
+
+    Args:
+        filename (str): The name of the file where the data will be loaded from
+            (dictates where the output folder name.
+        negate (bool): Flag for specifying whether the input should be inverted.
+        n_clusters (int): The number of clusters/Morse cells you expect in your data.
+
+    Returns:
+        None
+    """
     name = filename
-    ensemble = load_ensemble(filename)
+    ensemble = uu.load_ensemble(filename)
     analyze(name, ensemble, negate=negate, n_clusters=n_clusters)
 
 
-def analyze_synthetic(foo,
-                      name=None,
-                      noise_level=0.3,
-                      count=50,
-                      noise_model="uniform",
-                      negate=False):
+def analyze_synthetic(
+    foo, name=None, noise_level=0.3, count=50, noise_model="uniform", negate=False
+):
     if name is None:
         name = foo.__name__
     if "ackley" in name:
@@ -164,7 +220,13 @@ def analyze_synthetic(foo,
         persistence = 0.9
         n_clusters = 1
 
-    noise_level = 0.5*persistence*noise_level
-    ground_truth, ensemble = generate_ensemble(
-        foo, noise_level, count, noise_model)
-    analyze(name, ensemble, ground_truth, negate, n_clusters=n_clusters, persistence=persistence)
+    noise_level = 0.5 * persistence * noise_level
+    ground_truth, ensemble = uu.generate_ensemble(foo, noise_level, count, noise_model)
+    analyze(
+        name,
+        ensemble,
+        ground_truth,
+        negate,
+        n_clusters=n_clusters,
+        persistence=persistence,
+    )

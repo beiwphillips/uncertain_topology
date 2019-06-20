@@ -14,18 +14,26 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
 graph_params = {
-    "index": None, "max_neighbors": 10, "relaxed": False, "beta": 1, "p": 2.
+    "index": None,
+    "max_neighbors": 10,
+    "relaxed": False,
+    "beta": 1,
+    "p": 2.0,
 }
 
 
 def load_data(foo="ackley", noise_level=0.3):
-    assignment_map = {"4peaks": assignments_4peaks,
-                      "ackley": assignments_ackley, "salomon": assignments_salomon}
+    assignment_map = {
+        "4peaks": assignments_4peaks,
+        "ackley": assignments_ackley,
+        "salomon": assignments_salomon,
+    }
     base_name = "data/" + foo
 
-    ground_truth = scipy.io.loadmat(base_name + "/groundtruth.mat")['gt']
+    ground_truth = scipy.io.loadmat(base_name + "/groundtruth.mat")["gt"]
     uncertain_realizations = scipy.io.loadmat(
-        "{}/{}_uncertain.mat".format(base_name, str(noise_level)))['noisyEnsemble']
+        "{}/{}_uncertain.mat".format(base_name, str(noise_level))
+    )["noisyEnsemble"]
 
     assignments = assignment_map[foo]
     return ground_truth, uncertain_realizations, assignments
@@ -40,8 +48,7 @@ def load_ensemble(name="matVelocity"):
         # Temperature data is a bit special in that it has multiple
         # entries, let's just take the first for now.
         if name == "matTemperature":
-            uncertain_realizations.append(
-                scipy.io.loadmat(filename)[token][:, :, 0].T)
+            uncertain_realizations.append(scipy.io.loadmat(filename)[token][:, :, 0].T)
         else:
             uncertain_realizations.append(scipy.io.loadmat(filename)[token].T)
     return np.array(uncertain_realizations).T
@@ -62,14 +69,13 @@ def count_persistence(grid):
     h, w = grid.shape
 
     graph = ngl.EmptyRegionGraph(**graph_params)
-    tmc = topopy.MorseComplex(graph=graph,
-                              gradient='steepest',
-                              normalization=None)
+    tmc = topopy.MorseComplex(graph=graph, gradient="steepest", normalization=None)
     tmc.build(X, Y)
 
     partitions = tmc.get_partitions()
-    sorted_hierarchy = sorted([(p, k, x)
-                               for k, (p, x, s) in tmc.merge_sequence.items()])
+    sorted_hierarchy = sorted(
+        [(p, k, x) for k, (p, x, s) in tmc.merge_sequence.items()]
+    )
 
     field = np.zeros(Y.shape, dtype=int)
     for k, v in partitions.items():
@@ -85,30 +91,34 @@ def count_persistence(grid):
         next_field[np.where(next_field == dying_index)] = surviving_index
 
         counts[np.where(field == next_field)] += 1
-        weighted_counts[np.where(field == next_field)
-                        ] += (persistence-last_persistence)
-        unstable_counts[np.where(field != next_field)
-                        ] += (persistence-last_persistence)
-        consumption_counts[np.where(
-            field == surviving_index)] += (persistence-last_persistence)
+        weighted_counts[np.where(field == next_field)] += persistence - last_persistence
+        unstable_counts[np.where(field != next_field)] += persistence - last_persistence
+        consumption_counts[np.where(field == surviving_index)] += (
+            persistence - last_persistence
+        )
         field = next_field
         last_persistence = persistence
 
-    return counts.reshape(grid.shape), weighted_counts.reshape(grid.shape), unstable_counts.reshape(grid.shape), consumption_counts.reshape(grid.shape)
+    return (
+        counts.reshape(grid.shape),
+        weighted_counts.reshape(grid.shape),
+        unstable_counts.reshape(grid.shape),
+        consumption_counts.reshape(grid.shape),
+    )
+
 
 def max_consumption(grid):
     X, Y = massage_data(grid)
     h, w = grid.shape
 
     graph = ngl.EmptyRegionGraph(**graph_params)
-    tmc = topopy.MorseComplex(graph=graph,
-                              gradient='steepest',
-                              normalization=None)
+    tmc = topopy.MorseComplex(graph=graph, gradient="steepest", normalization=None)
     tmc.build(X, Y)
 
     partitions = tmc.get_partitions()
-    sorted_hierarchy = sorted([(p, k, x)
-                               for k, (p, x, s) in tmc.merge_sequence.items()])
+    sorted_hierarchy = sorted(
+        [(p, k, x) for k, (p, x, s) in tmc.merge_sequence.items()]
+    )
 
     field = np.zeros(Y.shape, dtype=int)
     for k, v in partitions.items():
@@ -120,19 +130,20 @@ def max_consumption(grid):
         next_field = np.array(field)
         next_field[np.where(next_field == dying_index)] = surviving_index
         idxs = np.where(field == surviving_index)
-        consumption_maxs[idxs] = np.maximum(consumption_maxs[idxs], (persistence-last_persistence))
+        consumption_maxs[idxs] = np.maximum(
+            consumption_maxs[idxs], (persistence - last_persistence)
+        )
         field = next_field
         last_persistence = persistence
 
     return consumption_maxs.reshape(grid.shape)
 
+
 def get_persistence_from_count(ensemble, n_clusters):
     persistences = []
     for i in range(ensemble.shape[2]):
         graph = ngl.EmptyRegionGraph(**graph_params)
-        tmc = topopy.MorseComplex(graph=graph,
-                                  gradient='steepest',
-                                  normalization=None)
+        tmc = topopy.MorseComplex(graph=graph, gradient="steepest", normalization=None)
 
         X, Y = massage_data(ensemble[:, :, i])
         tmc.build(X, Y)
@@ -147,9 +158,7 @@ def get_count_from_persistence(ensemble, persistence):
     max_counts = []
     for i in range(ensemble.shape[2]):
         graph = ngl.EmptyRegionGraph(**graph_params)
-        tmc = topopy.MorseComplex(graph=graph,
-                                  gradient='steepest',
-                                  normalization=None)
+        tmc = topopy.MorseComplex(graph=graph, gradient="steepest", normalization=None)
         X, Y = massage_data(ensemble[:, :, i])
         tmc.build(X, Y)
         max_counts.append(len(tmc.get_partitions(persistence).keys()))
@@ -165,9 +174,7 @@ def create_assignment_map(ensemble, n_clusters=None, persistence=None):
     max_counts = []
     for i in range(ensemble.shape[2]):
         graph = ngl.EmptyRegionGraph(**graph_params)
-        tmc = topopy.MorseComplex(graph=graph,
-                                  gradient='steepest',
-                                  normalization=None)
+        tmc = topopy.MorseComplex(graph=graph, gradient="steepest", normalization=None)
 
         X, Y = massage_data(ensemble[:, :, i])
         tmc.build(X, Y)
@@ -189,8 +196,7 @@ def create_assignment_map(ensemble, n_clusters=None, persistence=None):
     maxima = np.array(max_points)
     maxima = MinMaxScaler().fit_transform(maxima)
     clustering = sklearn.cluster.MeanShift().fit(maxima)
-    clustering = sklearn.cluster.MiniBatchKMeans(
-        n_clusters=n_clusters).fit(maxima)
+    clustering = sklearn.cluster.MiniBatchKMeans(n_clusters=n_clusters).fit(maxima)
     # clustering = sklearn.cluster.AgglomerativeClustering(n_clusters=n_clusters).fit(maxima)
     # clustering = sklearn.cluster.KMeans(n_clusters=n_clusters).fit(maxima)
     # clustering = sklearn.cluster.DBSCAN(eps=0.3, min_samples=3).fit(maxima)
@@ -211,9 +217,7 @@ def assign_labels(grid, maxima_map, n_clusters=None, persistence=None):
     h, w = grid.shape
 
     graph = ngl.EmptyRegionGraph(**graph_params)
-    tmc = topopy.MorseComplex(graph=graph,
-                              gradient='steepest',
-                              normalization=None)
+    tmc = topopy.MorseComplex(graph=graph, gradient="steepest", normalization=None)
     tmc.build(X, Y)
 
     if n_clusters is None and persistence is not None:
@@ -238,14 +242,13 @@ def generate_ensemble(foo, noise_level, count=50, noise_model="uniform"):
     X = np.vstack((xv.flatten(), yv.flatten())).T
     Z = foo(X)
     graph = ngl.EmptyRegionGraph(**graph_params)
-    tmc = topopy.MorseComplex(graph=graph,
-                              gradient='steepest',
-                              normalization=None)
+    tmc = topopy.MorseComplex(graph=graph, gradient="steepest", normalization=None)
     tmc.build(X, Z)
 
     partitions = tmc.get_partitions()
-    sorted_hierarchy = sorted([(p, len(tmc.get_partitions(p)))
-                               for k, (p, x, s) in tmc.merge_sequence.items()])
+    sorted_hierarchy = sorted(
+        [(p, len(tmc.get_partitions(p))) for k, (p, x, s) in tmc.merge_sequence.items()]
+    )
 
     # This is handled outside this function at the analyze_synthetic level
     # z_range = max(Z) - min(Z)
@@ -253,29 +256,33 @@ def generate_ensemble(foo, noise_level, count=50, noise_model="uniform"):
     noise = noise_level
     zv = Z.reshape(xv.shape)
     ground_truth = zv
-    uncertain_realizations = np.zeros(shape=ground_truth.shape+(count,))
+    uncertain_realizations = np.zeros(shape=ground_truth.shape + (count,))
     np.random.seed(0)
     for i in range(count):
         if noise_model == "uniform":
             uncertain_realizations[:, :, i] = flatpy.utils.add_uniform_noise(
-                ground_truth, noise)
+                ground_truth, noise
+            )
         elif noise_model == "nonparametric":
-            uncertain_realizations[:, :, i] = flatpy.utils.add_nonparametric_uniform_noise(
-                ground_truth, noise, 0.2, 10*noise)
+            uncertain_realizations[
+                :, :, i
+            ] = flatpy.utils.add_nonparametric_uniform_noise(
+                ground_truth, noise, 0.2, 10 * noise
+            )
         elif noise_model == "variable":
             uncertain_realizations[:, :, i] = flatpy.utils.add_nonuniform_noise(
-                ground_truth, noise)
+                ground_truth, noise
+            )
     return ground_truth, uncertain_realizations
 
 
 def autotune_from_persistence(all_ps, all_counts):
-    unique_persistences = np.array(
-        sorted(set([p for ps in all_ps for p in ps])))
+    unique_persistences = np.array(sorted(set([p for ps in all_ps for p in ps])))
     unique_counts = np.zeros(shape=(len(unique_persistences), len(all_ps)))
     for row, p in enumerate(unique_persistences):
         for col in range(len(all_ps)):
             index = 0
-            while index < len(all_ps[col])-1 and all_ps[col][index] < p:
+            while index < len(all_ps[col]) - 1 and all_ps[col][index] < p:
                 index += 1
             unique_counts[row, col] = all_counts[col][index]
 
@@ -285,7 +292,7 @@ def autotune_from_persistence(all_ps, all_counts):
         sigma = np.std(c)
         counts = np.bincount(np.array(c, dtype=int))
         max_count = np.argmax(counts)
-        if first_saved is None and counts[max_count] >= 0.9*len(all_ps):
+        if first_saved is None and counts[max_count] >= 0.9 * len(all_ps):
             first_saved = (p, max_count)
     plt.figure()
 
@@ -302,7 +309,7 @@ def autotune_from_persistence(all_ps, all_counts):
 
     # Create a continuous norm to map from data points to colors
     norm = plt.Normalize(0, sigma.max())
-    lc = LineCollection(segments, cmap='viridis', norm=norm)
+    lc = LineCollection(segments, cmap="viridis", norm=norm)
     # Set the values used for colormapping
     lc.set_array(sigma)
     lc.set_linewidth(4)
