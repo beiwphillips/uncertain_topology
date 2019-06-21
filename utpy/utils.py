@@ -23,6 +23,13 @@ graph_params = {
 
 
 def load_data(foo="ackley", noise_level=0.3):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     assignment_map = {
         "4peaks": assignments_4peaks,
         "ackley": assignments_ackley,
@@ -40,6 +47,13 @@ def load_data(foo="ackley", noise_level=0.3):
 
 
 def load_ensemble(name="matVelocity"):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     base_name = "data/" + name
     files = glob("{}/*.mat".format(base_name))
     uncertain_realizations = []
@@ -55,6 +69,13 @@ def load_ensemble(name="matVelocity"):
 
 
 def massage_data(grid):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     X = []
     Y = []
     for row, vals in enumerate(grid):
@@ -65,6 +86,13 @@ def massage_data(grid):
 
 
 def count_persistence(grid):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     X, Y = massage_data(grid)
     h, w = grid.shape
 
@@ -108,6 +136,13 @@ def count_persistence(grid):
 
 
 def max_consumption(grid):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     X, Y = massage_data(grid)
     h, w = grid.shape
 
@@ -140,6 +175,13 @@ def max_consumption(grid):
 
 
 def get_persistence_from_count(ensemble, n_clusters):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     persistences = []
     for i in range(ensemble.shape[2]):
         graph = ngl.EmptyRegionGraph(**graph_params)
@@ -155,6 +197,13 @@ def get_persistence_from_count(ensemble, n_clusters):
 
 
 def get_count_from_persistence(ensemble, persistence):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     max_counts = []
     for i in range(ensemble.shape[2]):
         graph = ngl.EmptyRegionGraph(**graph_params)
@@ -166,6 +215,13 @@ def get_count_from_persistence(ensemble, persistence):
 
 
 def create_assignment_map(ensemble, n_clusters=None, persistence=None):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     if n_clusters is None and persistence is None:
         raise ValueError("Must specify either n_clusters or persistence")
     max_points = list()
@@ -210,6 +266,13 @@ def create_assignment_map(ensemble, n_clusters=None, persistence=None):
 
 
 def assign_labels(grid, maxima_map, n_clusters=None, persistence=None):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     if n_clusters is None and persistence is None:
         raise ValueError("Must specify either n_clusters or persistence")
 
@@ -237,6 +300,13 @@ def assign_labels(grid, maxima_map, n_clusters=None, persistence=None):
 
 
 def generate_ensemble(foo, noise_level, count=50, noise_model="uniform"):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     xi = np.arange(0, 1, 0.025)
     xv, yv = np.meshgrid(xi, xi)
     X = np.vstack((xv.flatten(), yv.flatten())).T
@@ -277,6 +347,13 @@ def generate_ensemble(foo, noise_level, count=50, noise_model="uniform"):
 
 
 def autotune_from_persistence(all_ps, all_counts):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     unique_persistences = np.array(sorted(set([p for ps in all_ps for p in ps])))
     unique_counts = np.zeros(shape=(len(unique_persistences), len(all_ps)))
     for row, p in enumerate(unique_persistences):
@@ -328,6 +405,13 @@ def autotune_from_persistence(all_ps, all_counts):
 
 
 def autotune_from_survival_count(counts):
+    """ TODO
+    
+    Args:
+    Returns:
+        None
+
+    """
     # Perform image-based intensity segmentation here
     clustering = sklearn.cluster.DBSCAN(eps=0.3, min_samples=3).fit(counts)
     return

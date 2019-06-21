@@ -198,7 +198,7 @@ def analyze_synthetic(
     """
     if name is None:
         name = foo.__name__
-    
+
     # These are some hard-coded values determined from observation or knowledge
     # about the underlying function. The persistence values are determined by
     # idenitfying the true smallest feature in the given function.

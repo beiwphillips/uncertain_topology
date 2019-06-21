@@ -1,3 +1,12 @@
+""" This module will hold a collection of "show" functions that can be either
+be shown onscreen or saved to a file. Some do not give this option as they are
+used mostly as a precursor for another function call. 
+"""
+
+# Use this backend if you are saving directly to file, otherwise you may need
+# to enable an interactive backend, see here:
+# https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
+
 # import matplotlib
 # matplotlib.use('Agg')
 
@@ -13,6 +22,8 @@ import topopy
 
 from utpy.utils import *
 
+# I played with several different color schemes, uncomment the others to try
+# them out instead:
 color_list = [
     [228, 26, 28],
     [55, 126, 184],
@@ -25,32 +36,66 @@ color_list = [
     [153, 153, 153],
 ]
 
-# color_list = [[141, 211, 199], [255, 255, 179], [190, 186, 218],
-#               [251, 128, 114], [128, 177, 211], [253, 180, 98],
-#               [179, 222, 105], [252, 205, 229], [217, 217, 217]]
-# color_list = [[105,239,123], [149,56,144], [192,222,164],
-#                 [14,80,62], [153,222,249], [24,81,155],
-#                 [218,185,255], [66,30,200], [183,211,33]]
-# color_list = [[251,180,174],[179,205,227],[204,235,197],
-#               [222,203,228],[254,217,166],[255,255,204],
-#               [229,216,189],[253,218,236],[242,242,242]]
+# color_list = [
+#     [141, 211, 199],
+#     [255, 255, 179],
+#     [190, 186, 218],
+#     [251, 128, 114],
+#     [128, 177, 211],
+#     [253, 180, 98],
+#     [179, 222, 105],
+#     [252, 205, 229],
+#     [217, 217, 217],
+# ]
+# color_list = [
+#     [105, 239, 123],
+#     [149, 56, 144],
+#     [192, 222, 164],
+#     [14, 80, 62],
+#     [153, 222, 249],
+#     [24, 81, 155],
+#     [218, 185, 255],
+#     [66, 30, 200],
+#     [183, 211, 33],
+# ]
+# color_list = [
+#     [251, 180, 174],
+#     [179, 205, 227],
+#     [204, 235, 197],
+#     [222, 203, 228],
+#     [254, 217, 166],
+#     [255, 255, 204],
+#     [229, 216, 189],
+#     [253, 218, 236],
+#     [242, 242, 242],
+# ]
+
 color_list = np.array(np.array(plt.cm.tab20.colors) * 255, dtype=int)
 ccycle = cycle(color_list)
 
 
-def alpha_blend(src, dest):
-    out_image = np.zeros(dest.shape)
-    out_image[:, :, 3] = src[:, :, 3] + dest[:, :, 3] * (1 - src[:, :, 3])
-    out_image[:, :, :-1] = src[:, :, :-1] * src[:, :3] + dest[:, :, :-1] * dest[
-        :, :, 3
-    ] * (1 - src[:, :, 3])
-    out_image[:, :, :-1] /= out_image[:, :, 3]
-
-
 def overlay_alpha_image_lazy(background_rgb, overlay_rgba, alpha):
-    # cf https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending
-    # If the destination background is opaque, then
-    #   out_rgb = overlay_rgb * overlay_alpha + background_rgb * (1 - overlay_alpha)
+    """ An alpha blending technique scraped from the internet that performs a 
+        "lazy" blending approach. This is from here:
+        https://gist.github.com/pthom/5155d319a7957a38aeb2ac9e54cc0999
+
+        cf https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending
+        If the destination background is opaque, then
+        out_rgb = overlay_rgb * overlay_alpha + background_rgb * (1 - overlay_alpha)
+
+    Args:
+        background_rgb (numpy.ndarray): The first image as a 3D array where the
+        first two dimensions are spatial and the third is a three channel RGB.
+        overlay_rgba (numpy.ndarray): The second image blended on top of the
+        first as a 3D array where the first two dimensions are spatial and the
+        third is a three channel RGB.
+        alpha (float): The amount of blending.
+
+    Returns:
+        out_rgb (numpy.ndarray): The blended image as a 3D array where the first
+        two dimensions are spatial and the third is a three channel RGB.
+
+    """
     overlay_alpha = overlay_rgba[:, :, 3].astype(np.float) / 255.0 * alpha
     overlay_alpha_3 = np.dstack((overlay_alpha, overlay_alpha, overlay_alpha))
     overlay_rgb = overlay_rgba[:, :, :3].astype(np.float)
@@ -61,10 +106,32 @@ def overlay_alpha_image_lazy(background_rgb, overlay_rgba, alpha):
 
 
 def overlay_alpha_image_precise(background_rgb, overlay_rgba, alpha, gamma_factor=2.2):
-    """
-    cf minute physics brilliant clip "Computer color is broken" : https://www.youtube.com/watch?v=LKnqECcg6Gw
-    the RGB values are gamma-corrected by the sensor (in order to keep accuracy for lower luminancy),
-    we need to undo this before averaging.
+    """ An alpha blending technique scraped from the internet that performs a 
+        "precise" blending approach. This is from here:
+        https://gist.github.com/pthom/5155d319a7957a38aeb2ac9e54cc0999
+
+        cf https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending
+        If the destination background is opaque, then
+        out_rgb = overlay_rgb * overlay_alpha + background_rgb * (1 - overlay_alpha)
+
+        cf minute physics brilliant clip "Computer color is broken" :
+        https://www.youtube.com/watch?v=LKnqECcg6Gw
+        the RGB values are gamma-corrected by the sensor (in order to keep
+        accuracy for lower luminancy), we need to undo this before averaging.
+
+    Args:
+        background_rgb (numpy.ndarray): The first image as a 3D array where the
+        first two dimensions are spatial and the third is a three channel RGB.
+        overlay_rgba (numpy.ndarray): The second image blended on top of the
+        first as a 3D array where the first two dimensions are spatial and the
+        third is a three channel RGB.
+        alpha (float): The amount of blending.
+        gamma_factor (float): The gamma correction factor parameter.
+
+    Returns:
+        out_rgb (numpy.ndarray): The blended image as a 3D array where the first
+        two dimensions are spatial and the third is a three channel RGB.
+
     """
     overlay_alpha = overlay_rgba[:, :, 3].astype(np.float) / 255.0 * alpha
     overlay_alpha_3 = np.dstack((overlay_alpha, overlay_alpha, overlay_alpha))
@@ -84,6 +151,15 @@ def overlay_alpha_image_precise(background_rgb, overlay_rgba, alpha, gamma_facto
 
 
 def show_image(image):
+    """ Draw a two dimensional scalar field to a pseudocolor image canvas.
+
+    Args:
+        image (numpy.ndarray): A 2D scalar field grid of function values.
+
+    Returns:
+        None
+
+    """
     plt.figure()
     img = plt.imshow(
         image,
@@ -96,6 +172,19 @@ def show_image(image):
 
 
 def show_colormapped_image(image, my_dir, screen=False, filename="height.png"):
+    """ TODO
+
+    Args:
+        image (numpy.ndarray): A 2D scalar field grid of function values.
+        my_dir (str): The directory where the file will be saved.
+        screen (bool): Flag specifying whether the image should be shown
+            onscreen.
+        filename (str): Flag specifying whether the image should be shown
+            onscreen.
+    Returns:
+        None
+
+    """
     plt.figure()
     img = plt.imshow(image, cmap="cividis", vmin=image.min(), vmax=image.max())
     plt.gca().get_xaxis().set_visible(False)
@@ -108,9 +197,29 @@ def show_colormapped_image(image, my_dir, screen=False, filename="height.png"):
     plt.close()
 
 
-def show_msc(
-    grid, my_dir, persistence=None, n_clusters=None, screen=False, filename="msc.png"
-):
+def show_msc(grid,
+             my_dir,
+             persistence=None,
+             n_clusters=None,
+             screen=False,
+             filename="msc.png"):
+    """ TODO
+    
+    Args:
+        grid (numpy.ndarray): A 2D scalar field grid of function values.
+        my_dir (str): The directory where the file will be saved.
+        persistence (float): the amount of simplfication to perform before
+            plotting.
+        n_clusters (int): the number of partitions to simplify to if the
+            persistence is omitted.
+        screen (bool): Flag specifying whether the image should be shown
+            onscreen.
+        filename (str): Flag specifying whether the image should be shown
+            onscreen.
+    Returns:
+        None
+
+    """
     X, Y = massage_data(grid)
     h, w = grid.shape
 
@@ -181,7 +290,23 @@ def show_msc(
     plt.close()
 
 
-def show_msc_boundaries(grid, persistence=None, n_clusters=None, color="#000000"):
+def show_msc_boundaries(grid,
+                        persistence=None,
+                        n_clusters=None,
+                        color="#000000"):
+    """ TODO
+    
+    Args:
+        grid (numpy.ndarray): A 2D scalar field grid of function values.
+        persistence (float): the amount of simplfication to perform before
+            plotting.
+        n_clusters (int): the number of partitions to simplify to if the
+            persistence is omitted.
+        color (str): hex representation of a color.
+    Returns:
+        None
+
+    """
     X, Y = utpy.utils.massage_data(grid)
     h, w = grid.shape
 
@@ -216,7 +341,12 @@ def show_msc_boundaries(grid, persistence=None, n_clusters=None, color="#000000"
     plt.gca().set_aspect("equal")
 
 
-def show_method_comparison(ground_truth, ensemble, n_clusters, assignments):
+def show_method_comparison(ground_truth,
+                           ensemble,
+                           n_clusters,
+                           assignments):
+    """
+    """
     plt.figure()
     mean_realization = np.mean(ensemble, axis=2)
     # median_realization = np.median(ensemble, axis=2)
@@ -236,9 +366,12 @@ def show_method_comparison(ground_truth, ensemble, n_clusters, assignments):
     )
 
 
-def show_persistence_charts(
-    ensemble, my_dir, screen=False, filename="composite_persistence_charts.png"
-):
+def show_persistence_charts(ensemble,
+                            my_dir,
+                            screen=False,
+                            filename="composite_persistence_charts.png"):
+    """
+    """
     plt.figure()
 
     all_ps = []
@@ -275,9 +408,12 @@ def show_persistence_charts(
     return all_ps, all_counts
 
 
-def show_persistence_chart(
-    realization, my_dir, screen=False, filename="persistence_chart.png"
-):
+def show_persistence_chart(realization,
+                           my_dir,
+                           screen=False,
+                           filename="persistence_chart.png"):
+    """
+    """
     plt.figure()
 
     graph = ngl.EmptyRegionGraph(**graph_params)
@@ -307,7 +443,12 @@ def show_persistence_chart(
     return ps, counts
 
 
-def show_survival_count(ensemble, my_dir, screen=False, filename="survival_count.png"):
+def show_survival_count(ensemble,
+                        my_dir,
+                        screen=False,
+                        filename="survival_count.png"):
+    """
+    """
     all_counts = np.zeros(ensemble[:, :, 0].shape)
     for i in range(ensemble.shape[2]):
         # for i in range(1):
@@ -341,9 +482,12 @@ my_cmap = cm.viridis
 # my_cmap = colors.ListedColormap(cm.tab20.colors[:16])
 
 
-def show_weighted_survival_count(
-    ensemble, my_dir, screen=False, filename="weighted_survival_count.png"
-):
+def show_weighted_survival_count(ensemble,
+                                 my_dir,
+                                 screen=False,
+                                 filename="weighted_survival_count.png"):
+    """
+    """
     all_weighted_counts = np.zeros(ensemble[:, :, 0].shape)
     for i in range(ensemble.shape[2]):
         # for i in range(1):
@@ -372,9 +516,12 @@ def show_weighted_survival_count(
     return all_weighted_counts
 
 
-def show_weighted_instability_count(
-    ensemble, my_dir, screen=False, filename="weighted_instability_count.png"
-):
+def show_weighted_instability_count(ensemble,
+                                    my_dir,
+                                    screen=False,
+                                    filename="weighted_instability_count.png"):
+    """
+    """
     all_weighted_counts = np.zeros(ensemble[:, :, 0].shape)
     for i in range(ensemble.shape[2]):
         # for i in range(1):
@@ -401,9 +548,12 @@ def show_weighted_instability_count(
     return all_weighted_counts
 
 
-def show_weighted_consumption_count(
-    ensemble, my_dir, screen=False, filename="weighted_consumption_count.png"
-):
+def show_weighted_consumption_count(ensemble,
+                                    my_dir,
+                                    screen=False,
+                                    filename="weighted_consumption_count.png"):
+    """
+    """
     all_weighted_counts = np.zeros(ensemble[:, :, 0].shape)
     for i in range(ensemble.shape[2]):
         # for i in range(1):
@@ -428,9 +578,12 @@ def show_weighted_consumption_count(
     return all_weighted_counts
 
 
-def show_max_consumption(
-    ensemble, my_dir, screen=False, filename="max_consumption.png"
-):
+def show_max_consumption(ensemble,
+                         my_dir,
+                         screen=False,
+                         filename="max_consumption.png"):
+    """
+    """
     all_weighted_counts = np.zeros(ensemble[:, :, 0].shape)
     for i in range(ensemble.shape[2]):
         # for i in range(1):
@@ -450,7 +603,12 @@ def show_max_consumption(
     return all_weighted_counts
 
 
-def show_median_counts(ensemble, my_dir, screen=False, filename="_median.png"):
+def show_median_counts(ensemble,
+                       my_dir,
+                       screen=False,
+                       filename="_median.png"):
+    """
+    """
     survival_counts = np.zeros(ensemble.shape)
     weighted_survival_counts = np.zeros(ensemble.shape)
     weighted_instability_counts = np.zeros(ensemble.shape)
@@ -497,9 +655,12 @@ def show_median_counts(ensemble, my_dir, screen=False, filename="_median.png"):
         plt.close()
 
 
-def show_variance(
-    counts, my_dir, screen=False, filename="weighted_surival_count_variance.png"
-):
+def show_variance(counts,
+                  my_dir,
+                  screen=False,
+                  filename="weighted_surival_count_variance.png"):
+    """
+    """
     mean_images = []
     max_radius = 5
 
@@ -532,9 +693,13 @@ def show_variance(
         plt.close()
 
 
-def show_probabilities_colormap(
-    ensemble, assignments, my_dir, screen=False, filename="partition_probabilities.png"
-):
+def show_probabilities_colormap(ensemble,
+                                assignments,
+                                my_dir,
+                                screen=False,
+                                filename="partition_probabilities.png"):
+    """
+    """
     ps = []
     fields = []
     for i in range(ensemble.shape[2]):
@@ -571,14 +736,14 @@ def show_probabilities_colormap(
     plt.close()
 
 
-def show_blended_overlay(
-    ensemble,
-    assignments,
-    my_dir,
-    gamma=2.2,
-    screen=False,
-    filename="uncertain_assignment_blended_overlay.png",
-):
+def show_blended_overlay(ensemble,
+                         assignments,
+                         my_dir,
+                         gamma=2.2,
+                         screen=False,
+                         filename="uncertain_assignment_blended_overlay.png"):
+    """
+    """
     ps = []
     fields = []
     count = ensemble.shape[2]
@@ -626,14 +791,14 @@ def show_blended_overlay(
     plt.close()
 
 
-def show_contour_overlay(
-    ensemble,
-    assignments,
-    my_dir,
-    colored=False,
-    screen=False,
-    filename="uncertain_assignment_contour_overlay.png",
-):
+def show_contour_overlay(ensemble,
+                         assignments,
+                         my_dir,
+                         colored=False,
+                         screen=False,
+                         filename="uncertain_assignment_contour_overlay.png"):
+    """
+    """
     ps = []
     fields = []
     count = ensemble.shape[2]
@@ -697,14 +862,14 @@ def show_contour_overlay(
     plt.close()
 
 
-def show_certain_regions(
-    ensemble,
-    assignments,
-    my_dir,
-    contours=False,
-    screen=False,
-    filename="certain_assignment.png",
-):
+def show_certain_regions(ensemble,
+                         assignments,
+                         my_dir,
+                         contours=False,
+                         screen=False,
+                         filename="certain_assignment.png"):
+    """
+    """
     ps = []
     fields = []
     count = ensemble.shape[2]
@@ -764,15 +929,15 @@ def show_certain_regions(
     plt.close()
 
 
-def show_combined_overlay(
-    ensemble,
-    assignments,
-    my_dir,
-    gamma=2.2,
-    contours=False,
-    screen=False,
-    filename="uncertain_region_assignments.png",
-):
+def show_combined_overlay(ensemble,
+                          assignments,
+                          my_dir,
+                          gamma=2.2,
+                          contours=False,
+                          screen=False,
+                          filename="uncertain_region_assignments.png"):
+    """
+    """
     ps = []
     fields = []
     count = ensemble.shape[2]
@@ -835,6 +1000,8 @@ def show_combined_overlay(
 
 
 def show_label_boundaries(labels, ax, color="#000000"):
+    """
+    """    
     h, w = labels.shape
 
     keyMap = {}
