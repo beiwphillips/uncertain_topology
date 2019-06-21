@@ -1,3 +1,12 @@
+""" This module contains some rather large functions that are meant to be a one
+stop shop for generating all of the images we require for a particular dataset.
+There are two different pipelines here that share an underlying common workflow,
+but each has to do some specific prep work to get there. One is dealing with
+synthetic functions that can be specified in closed form with noise added, thus
+there is an underlying ground truth model available. The other loads data from
+a file and is more typically dealing with real-world data where we don't know
+how many features to expect.
+"""
 from functools import partial
 
 import os
@@ -177,7 +186,10 @@ def analyze_synthetic(
         name (str): The name of the dataset (dictates where the output folder
             name.
         noise_level (float): A value specifying the maximum amount of noise to
-            add to the function in each realization.
+            add to the function in each realization. This is a fraction
+            representation of half of the persitence value selected. Thus, if
+            the persistence value is 40, and the noise_level=0.5, then the
+            maximum noise will be 40/2*0.5 = 10.
         count (int): The number of realizations to generate.
         noise_model (str): One of {'variable', 'uniform', 'nonparametric'}
 
@@ -186,6 +198,13 @@ def analyze_synthetic(
     """
     if name is None:
         name = foo.__name__
+    
+    # These are some hard-coded values determined from observation or knowledge
+    # about the underlying function. The persistence values are determined by
+    # idenitfying the true smallest feature in the given function.
+    # Be aware: if the implementations of these functions change, then these
+    # values may no longer be valid. The n_clusters is the number of expected
+    # true extrema
     if "ackley" in name:
         persistence = 0.665
         n_clusters = 9
