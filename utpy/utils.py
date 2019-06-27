@@ -4,7 +4,7 @@ import sklearn.cluster
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
-import nglpy_cuda as ngl
+import nglpy as ngl
 import topopy
 import flatpy
 

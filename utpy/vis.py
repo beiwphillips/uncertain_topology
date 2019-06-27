@@ -17,7 +17,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
 from itertools import cycle
 
-import nglpy_cuda as ngl
+import nglpy as ngl
 import topopy
 
 from utpy.utils import *
