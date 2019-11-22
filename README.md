@@ -2,74 +2,36 @@
 
 A repository for housing an uncertain topology computation algorithm
 
-# Installation (Mac)
+# Installation
 
-Install swig:
-
-```
-    brew install swig
-```
-
-I recommend creating a virtual environment using conda and activating it:
+Begin by checking out this library:
 
 ```
-    conda env create --name utpy
-    conda activate utpy (possibly source activate utpy)
+    git clone https://bitbucket.org/dmaljovec/uncertain_topology.git
 ```
 
-Checkout and build flatpy:
+## Setting up a Virtual Environment
+
+We recommend creating a virtual environment and activating it:
 
 ```
-    git clone https://github.com/maljovec/flatpy.git
-    cd flatpy
-    python setup.py develop
+    pip install virtualenv
+    virtualenv utpy
+    source utpy/bin/activate
 ```
 
-Checkout and build a compatible version of nglpy:
+Install prerequisites:
 
 ```
-    git clone https://github.com/maljovec/nglpy.git
-    cd nglpy
-    git checkout new_api
-    make
-    CFLAGS=-stdlib=libc++ python setup.py develop
-```
-
-You may have to copy the .so file into nglpy (you could possibly get by with a symlink, but that didn't work for me):
-
-```
-    cp _ngl*.so nglpy/
-```
-
-Checkout and build the compatible version of topopy:
-
-```
-    git clone https://github.com/maljovec/topopy.git
-    cd topopy
-    git checkout uncertain
-    make
-    CFLAGS=-stdlib=libc++ python setup.py develop
-```
-
-Again, you may have to copy the .so file into topopy (you could possibly get by with a symlink, but that didn't work for me):
-
-```
-    cp _topology*.so topopy/
-```
-
-Checkout and build the uncertain topology library:
-
-```
-    git clone https://dmaljovec@bitbucket.org/dmaljovec/uncertain_topology.git
-```
-
-Install other prerequisite libraries that are not handled above:
-
-```
-    pip install matplotlib seaborn scikit-image
+    pip install -f requirements.txt
 ```
 
 Now you should be good to go!
+
+## Using the Pre-configured Docker Container
+
+Another method for using this library is to use our pre-built docker container.
+
 
 # Available Notebooks:
 

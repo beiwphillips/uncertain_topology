@@ -234,18 +234,20 @@ def create_assignment_map(ensemble, n_clusters=None, persistence=None):
 
         X, Y = massage_data(ensemble[:, :, i])
         tmc.build(X, Y)
-        if n_clusters is None and persistence is not None:
-            max_counts.append(len(tmc.get_partitions(persistence).keys()))
-            for key in tmc.get_partitions(persistence).keys():
-                max_points.append((int(X[key, 0]), int(X[key, 1])))
-                max_member.append(i)
-        else:
+        if n_clusters is not None:
             for p in tmc.persistences:
                 if len(tmc.get_partitions(p).keys()) <= n_clusters:
                     for key in tmc.get_partitions(p).keys():
                         max_points.append((int(X[key, 0]), int(X[key, 1])))
                         max_member.append(i)
                     break
+        else:
+            max_counts.append(len(tmc.get_partitions(persistence).keys()))
+            for key in tmc.get_partitions(persistence).keys():
+                max_points.append((int(X[key, 0]), int(X[key, 1])))
+                max_member.append(i)
+
+
     if n_clusters is None and persistence is not None:
         n_clusters = int(np.average(max_counts))
 
