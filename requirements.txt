@@ -1,0 +1,7 @@
+flatpy
+matplotlib
+jupyter
+nglpy>=1.0.6,<2.0
+seaborn 
+scikit-image
+topopy>=1.*, <2.0
