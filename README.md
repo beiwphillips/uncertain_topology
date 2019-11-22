@@ -30,8 +30,14 @@ Now you should be good to go!
 
 ## Using the Pre-configured Docker Container
 
-Another method for using this library is to use our pre-built docker container.
+Another method for using this library is to use our pre-built docker container:
 
+```
+docker build -t utpy .
+docker run -it utpy bash
+```
+
+This will drop you into a terminal session of the running container.
 
 # Available Notebooks:
 
