@@ -80,4 +80,4 @@ This code is in a pre-alpha state and is provided as-is:
 
 ![Certified Works on my Machine](https://blog.codinghorror.com/content/images/uploads/2007/03/6a0120a85dcdae970b0128776ff992970c-pi.png)
 
-This code is more a proof-of-concept rather than production-ready software. There is an underlying package `utpy` that attempts to bundle up some of the concepts into a reusable library, but even this lacks documentation, testing, and does not adhere to best practices. I am happy to answer quetions and work with someone who wants to maintain this project, but I do not have the time or ambition to maintain this project. Happy Coding!
+This code is more a proof-of-concept rather than production-ready software. There is an underlying package `utpy` that attempts to bundle up some of the concepts into a reusable library, but even this lacks documentation, testing, and does not adhere to best practices. I am happy to answer quetions and work with someone who wants to maintain this project, but I do not have the time or ambition to lead this project. Happy Coding!
